@@ -2,6 +2,7 @@
 #include <stdlib.h>
 #include <string.h>
 #include <unistd.h> //acces , getcw i�in
+#include <curl/curl.h>
 
 struct SavasanOzellikler
 {
@@ -141,10 +142,70 @@ int main()
     struct Savasanlar *s = (struct Savasanlar *)malloc(sizeof(struct Savasanlar));
     memset(s, 0, sizeof(struct Savasanlar));
 
+    if (!senaryoIndirme())
+        printf("Senaryo indirmede sorun olustu!!!");
+
     senaryoAyristir(s);
 
     free(s);
     return 0;
+}
+
+size_t dosyaYaz(void *ptr, size_t size, size_t nmemb, FILE *stream)
+{
+    return fwrite(ptr, size, nmemb, stream);
+}
+int senaryoIndirme()
+{
+    CURL *curl;
+    FILE *dosya;
+    CURLcode sonuc;
+    int i = 0;
+
+    const char url[5][80] = {"https://yapbenzet.org.tr/1.json", "https://yapbenzet.org.tr/2.json", "https://yapbenzet.org.tr/3.json", "https://yapbenzet.org.tr/4.json", "https://yapbenzet.org.tr/5.json"};
+    char *outfilename;
+
+    printf("Kacinci linki indirmek istiyorsunuz : ");
+    scanf("%d", &i);
+    outfilename = "./Files/senaryo.json";
+
+    curl_global_init(CURL_GLOBAL_DEFAULT);
+    curl = curl_easy_init();
+
+    if (curl)
+    {
+        dosya = fopen(outfilename, "wb");
+        if (!dosya)
+        {
+            printf("Dosya acilamadi!");
+            return 0;
+        }
+
+        curl_easy_setopt(curl, CURLOPT_URL, url[i - 1]);
+        curl_easy_setopt(curl, CURLOPT_WRITEFUNCTION, dosyaYaz);
+        curl_easy_setopt(curl, CURLOPT_WRITEDATA, dosya);
+        curl_easy_setopt(curl, CURLOPT_SSL_VERIFYPEER, 0L);
+        sonuc = curl_easy_perform(curl);
+
+        if (sonuc == CURLE_OK)
+            printf("Dosya basariyla indirildi.\n");
+        else
+        {
+            printf("Hata link indirilemedi!\n");
+            return 0;
+        }
+
+        fclose(dosya);
+        curl_easy_cleanup(curl);
+    }
+    else
+    {
+        printf("cURL baslatilamadi.\n");
+        return 0;
+    }
+
+    curl_global_cleanup();
+    return 1;
 }
 
 void dosyaOku(struct Savasanlar *s, char *ordu, char *birimAdi)
@@ -161,9 +222,12 @@ void dosyaOku(struct Savasanlar *s, char *ordu, char *birimAdi)
         if (access(dosyaYolu, F_OK) == 0)
             printf("mevcut %s\n", dosyaYolu);
         else
-            printf("Dosya dogru bi konumda isimde degil");
+        {
+            printf("Dosya '%s' bulunamadi. Lutfen dosyanin dogru isimde ve dogru dizinde oldugundan emin olun.", dosyaYolu);
+            return;
+        }
 
-        dosyaAdi = "Files\\unit_types.json"; // tam dosya yolunu yollaman gerekiyor
+        dosyaAdi = "Files\\unit_types.json";
         birimAyristir(s, dosyaAdi, birimAdi);
     }
 
@@ -175,8 +239,10 @@ void dosyaOku(struct Savasanlar *s, char *ordu, char *birimAdi)
         if (access(dosyaYolu, F_OK) == 0)
             printf("mevcut %s\n", dosyaYolu);
         else
-            printf("Dosya dogru bi konumda isimde degil");
-
+        {
+            printf("Dosya '%s' bulunamadi. Lutfen dosyanin dogru isimde ve dogru dizinde oldugundan emin olun.", dosyaYolu);
+            return;
+        }
         dosyaAdi = "Files\\heroes.json";
         kahramanAyristir(s, dosyaAdi, birimAdi);
     }
@@ -189,7 +255,10 @@ void dosyaOku(struct Savasanlar *s, char *ordu, char *birimAdi)
         if (access(dosyaYolu, F_OK) == 0)
             printf("mevcut %s\n", dosyaYolu);
         else
-            printf("Dosya dogru bi konumda isimde degil");
+        {
+            printf("Dosya '%s' bulunamadi. Lutfen dosyanin dogru isimde ve dogru dizinde oldugundan emin olun.", dosyaYolu);
+            return;
+        }
         dosyaAdi = "Files\\creatures.json";
         yaratikAyristir(s, dosyaAdi, birimAdi);
     }
@@ -783,7 +852,10 @@ void arastirmaAyristir(struct Savasanlar *s, char *birimAd, char *grup, int sevi
     if (access(dosyaYolu, F_OK) == 0)
         printf("mevcut %s\n", dosyaYolu);
     else
-        printf("Dosya dogru bi konumda isimde degil");
+    {
+        printf("Dosya '%s' bulunamadi. Lutfen dosyanin dogru isimde ve dogru dizinde oldugundan emin olun.", dosyaYolu);
+        return;
+    }
     dosyaAdi = "Files\\research.json";
 
     char ayrisan[200];
@@ -857,8 +929,11 @@ void senaryoAyristir(struct Savasanlar *s)
     if (access(dosyaYolu, F_OK) == 0)
         printf("mevcut %s\n", dosyaYolu);
     else
-        printf("Dosya dogru bi konumda isimde degil");
-    dosyaAdi = "Files\\senaryo.json";
+    {
+        printf("Dosya '%s' bulunamadi. Lutfen dosyanin dogru isimde ve dogru dizinde oldugundan emin olun.", dosyaYolu);
+        return;
+    }
+
 
     int kontrol = 0;
     int deger;
@@ -869,11 +944,12 @@ void senaryoAyristir(struct Savasanlar *s)
     char *kahraman;
     char *canavar;
 
+    dosyaAdi = "Files\\senaryo.json";
     FILE *dosya;
     dosya = fopen(dosyaAdi, "r");
     if (dosya == NULL)
     {
-        printf("\ndosya acilamadi");
+        printf("\nSenaryo dosyasi acilamadi");
         return;
     }
 
