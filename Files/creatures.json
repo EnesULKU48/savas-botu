@@ -45,12 +45,12 @@
         "Ates_Iblisi": {
             "etki_degeri": "30",
             "etki_turu": "saldiri",
-            "aciklama": "suvarilerinin saldiri gucunu %30 artirir."
+            "aciklama": "varg_binicilerin saldiri gucunu %30 artirir."
         },
         "Makrog_Savas_Beyi": {
             "etki_degeri": "25",
             "etki_turu": "savunma",
-            "aciklama": "Trollerin savunma gucunu %25 artirir."
+            "aciklama": "trollerin savunma gucunu %25 artirir."
         },
         "Buz_Devleri": {
             "etki_degeri": "15",
