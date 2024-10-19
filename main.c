@@ -35,6 +35,8 @@ struct ArastirmaOzellikler
 {
     int senaryoSeviyesi;
     float deger;
+    char etki_turu[15];;
+    char etkiledigi_birim[20];
 };
 
 struct BirimlerInsan
@@ -135,7 +137,8 @@ void dosyaOku(struct Savasanlar *s, char *ordu, char *birimAdi);
 void birimAyristir(struct Savasanlar *s, char *dosyaAdi, char *birimAd);
 void kahramanAyristir(struct Savasanlar *s, char *dosyaAdi, char *birimAd);
 void canavarAyristir(struct Savasanlar *s, char *dosyaAdi, char *birimAd);
-void arastirmaAtama(struct Savasanlar *s, char *okunan_satir, char *birimAd, char *grup, int seviye);
+void arastirmaAtama(struct Savasanlar *s, char *okunan_satir, char *birimAd, char *grup, int seviye, int i);
+void arastirmaEtkiledigiBirimAta(struct ArastirmaOzellikler *arastir, char *okunan_satir);
 void arastirmaAyristir(struct Savasanlar *s, char *birimAd, char *grup, int seviye);
 void senaryoAyristir(struct Savasanlar *s);
 
@@ -154,7 +157,16 @@ void olen_hasardagit_insan(struct BirimlerInsan *birim, float birimHasarDagilimi
 void birim_kayip_insan(struct BirimlerInsan *birim);
 void saglik_durumu_ork(struct BirimlerOrg *birim);
 void saglik_durumu_insan(struct BirimlerInsan *birim);
-
+void insan_kahraman_etkisi(struct KahramanOzellikler *kahraman, struct BirimlerInsan *birimlerInsan);
+void insan_kahraman_canavar_etkisi(struct KahramanlarInsan *kahraman, struct CanavarlarInsan *canavar, struct BirimlerInsan *birimler);
+void canavar_kahraman_bonusu_uygula(char *bonus_turu, float bonus_degeri, float *savunma, float *saldiri, float *kritik_sans);
+void insan_canavar_etkisi(struct CanavarOzellikler *canavar, struct BirimlerInsan *birimlerInsan);
+void ork_kahraman_canavar_etkisi(struct KahramanlarOrg *kahraman, struct CanavarlarOrg *canavar, struct BirimlerOrg *birimler);
+void ork_kahraman_etkisi(struct KahramanOzellikler *kahraman, struct BirimlerOrg *birimlerOrg);
+void ork_canavar_etkisi(struct CanavarOzellikler *canavar, struct BirimlerOrg *birimlerOrg);
+void arastirma_etkisi(struct InsanImparatorlugu *insan_imp, struct OrkLegi *ork_imp);
+void insan_arastirma_etki_uygula(struct ArastirmaOzellikler *arastirma, struct InsanImparatorlugu *insan_imp, float etki);
+void ork_arastirma_etki_uygula(struct ArastirmaOzellikler *arastirma, struct OrkLegi *ork_imp, float etki);
 void yorgunluk_uygula(struct BirimlerInsan *birimInsan, struct BirimlerOrg *birimOrk);
 float kritik_hasar_hesapla(float normal_saldiri, float kritik_sans, int saldiri_sayisi);
 
@@ -166,10 +178,8 @@ int main()
 
     if (!senaryoIndirme())
         printf("Senaryo indirmede sorun olustu!!!");
-    //girilen sayıyı kontrol eden mek yap
 
     senaryoAyristir(s);
-
 
     savas(s);
 
@@ -182,24 +192,35 @@ void savas(struct Savasanlar *s)
     struct BirimlerInsan *birimlerInsan = &s->insanImparatorlugu.birimler;
     struct BirimlerOrg *birimlerOrk = &s->orkLegi.birimler;
 
+    struct KahramanlarInsan *kahramanInsan = &s->insanImparatorlugu.kahramanlar;
+    struct KahramanlarOrg *kahramanOrg = &s->orkLegi.kahramanlar;
+
+    struct CanavarlarInsan *canavarInsan = &s->insanImparatorlugu.canavarlar;
+    struct CanavarlarOrg *canavarOrg = &s->orkLegi.canavarlar;
+
     int adim_say = 1;
     int insan_saldiri_say = 0;
     int ork_saldiri_say = 0;
 
-    while (adim_say <= 50)
+    while (1)
     {
         if (adim_say % 5 == 0)
             yorgunluk_uygula(birimlerInsan, birimlerOrk);
+
+        insan_kahraman_canavar_etkisi(kahramanInsan, canavarInsan, birimlerInsan);
+        ork_kahraman_canavar_etkisi(kahramanOrg, canavarOrg, birimlerOrk);
+        arastirma_etkisi(&s->insanImparatorlugu, &s->orkLegi);
 
         if (adim_say % 2 == 1)
         {
             insan_saldiri_say++;
 
             printf("\n\n\n----adim sayisi : %d----\n",adim_say);
+
             float insan_saldiri_gucu = insanSaldiriHesapla(birimlerInsan, insan_saldiri_say);
             float ork_savunma_gucu = orkSavunmaHesapla(birimlerOrk);
 
-            /*if(insan_saldiri_gucu == 0)
+            if(insan_saldiri_gucu == 0)
             {
                 printf("\n\nork kazandi\n\n");
                 break;
@@ -208,7 +229,7 @@ void savas(struct Savasanlar *s)
             {
                 printf("\n\ninsankazandi\n\n");
                 break;
-            }*/
+            }
 
             printf("insan saldiri gucu : %f\n", insan_saldiri_gucu);
             printf("ork savunma gucu : %f\n", ork_savunma_gucu);
@@ -227,10 +248,11 @@ void savas(struct Savasanlar *s)
             ork_saldiri_say++;
 
             printf("\n\n\nadim sayisi : %d\n",adim_say);
+
             float ork_saldiri_gucu = orkSaldiriHesapla(birimlerOrk, ork_saldiri_say);
             float insan_savunma_gucu = insanSavunmaHesapla(birimlerInsan);
 
-            /*if(ork_saldiri_gucu <= 0)
+            if(ork_saldiri_gucu <= 0)
             {
                 printf("\n\ninsan kazandi\n\n");
                 break;
@@ -239,7 +261,7 @@ void savas(struct Savasanlar *s)
             {
                 printf("\n\nork kazandi\n\n");
                 break;
-            }*/
+            }
 
             printf("ork saldiri gucu : %f\n", ork_saldiri_gucu);
             printf("insan savunma gucu : %f\n", insan_savunma_gucu);
@@ -248,6 +270,7 @@ void savas(struct Savasanlar *s)
 
             if(insanimp_nethasar > 0)
                 birim_guncelle_insan(birimlerInsan, insanimp_nethasar, insan_savunma_gucu);
+
             printf("net hasar : %f\n", insanimp_nethasar);
 
         }
@@ -255,6 +278,449 @@ void savas(struct Savasanlar *s)
     }
 
 }
+
+void insan_arastirma_etki_uygula(struct ArastirmaOzellikler *arastirma, struct InsanImparatorlugu *insan_imp, float etki)
+{
+    if(!strcmp(arastirma->etkiledigi_birim, "tum_birimler"))
+    {
+        if(!strcmp(arastirma->etki_turu, "savunma"))
+        {
+            insan_imp->birimler.kusatma_makineleri.savunma *= etki;
+            insan_imp->birimler.okcular.savunma *= etki;
+            insan_imp->birimler.piyadeler.savunma *= etki;
+            insan_imp->birimler.suvariler.savunma *= etki;
+        }
+        else if(!strcmp(arastirma->etki_turu, "saldiri"))
+        {
+            insan_imp->birimler.kusatma_makineleri.saldiri *= etki;
+            insan_imp->birimler.okcular.saldiri *= etki;
+            insan_imp->birimler.piyadeler.saldiri *= etki;
+            insan_imp->birimler.suvariler.saldiri *= etki;
+        }
+        else if(!strcmp(arastirma->etki_turu, "kritik"))
+        {
+            insan_imp->birimler.kusatma_makineleri.kritik_sans *= etki;
+            insan_imp->birimler.okcular.kritik_sans *= etki;
+            insan_imp->birimler.piyadeler.kritik_sans *= etki;
+            insan_imp->birimler.suvariler.kritik_sans *= etki;
+        }
+    }
+    else if(!strcmp(arastirma->etkiledigi_birim, "kusatma_makineleri"))
+    {
+        if(!strcmp(arastirma->etki_turu, "savunma"))
+            insan_imp->birimler.kusatma_makineleri.savunma *= etki;
+        else if(!strcmp(arastirma->etki_turu, "saldiri"))
+            insan_imp->birimler.kusatma_makineleri.saldiri *= etki;
+        else if(!strcmp(arastirma->etki_turu, "kritik"))
+            insan_imp->birimler.kusatma_makineleri.kritik_sans *= etki;
+    }
+    else if(!strcmp(arastirma->etkiledigi_birim, "okcu"))
+    {
+        if(!strcmp(arastirma->etki_turu, "savunma"))
+            insan_imp->birimler.okcular.savunma *= etki;
+        else if(!strcmp(arastirma->etki_turu, "saldiri"))
+            insan_imp->birimler.okcular.saldiri *= etki;
+        else if(!strcmp(arastirma->etki_turu, "kritik"))
+            insan_imp->birimler.okcular.kritik_sans *= etki;
+    }
+    else if(!strcmp(arastirma->etkiledigi_birim, "piyade"))
+    {
+        if(!strcmp(arastirma->etki_turu, "savunma"))
+            insan_imp->birimler.piyadeler.savunma *= etki;
+        else if(!strcmp(arastirma->etki_turu, "saldiri"))
+            insan_imp->birimler.piyadeler.saldiri *= etki;
+        else if(!strcmp(arastirma->etki_turu, "kritik"))
+            insan_imp->birimler.piyadeler.kritik_sans *= etki;
+    }
+    else if(!strcmp(arastirma->etkiledigi_birim, "suvari"))
+    {
+        if(!strcmp(arastirma->etki_turu, "savunma"))
+            insan_imp->birimler.suvariler.savunma *= etki;
+        else if(!strcmp(arastirma->etki_turu, "saldiri"))
+            insan_imp->birimler.suvariler.saldiri *= etki;
+        else if(!strcmp(arastirma->etki_turu, "kritik"))
+            insan_imp->birimler.suvariler.kritik_sans *= etki;
+    }
+}
+
+void ork_arastirma_etki_uygula(struct ArastirmaOzellikler *arastirma, struct OrkLegi *ork_imp, float etki)
+{
+    if(!strcmp(arastirma->etkiledigi_birim, "tum_birimler"))
+    {
+        if(!strcmp(arastirma->etki_turu, "savunma"))
+        {
+            ork_imp->birimler.ork_dovusculeri.savunma *= etki;
+            ork_imp->birimler.troller.savunma *= etki;
+            ork_imp->birimler.varg_binicileri.savunma *= etki;
+            ork_imp->birimler.mizrakcilar.savunma *= etki;
+        }
+        else if(!strcmp(arastirma->etki_turu, "saldiri"))
+        {
+            ork_imp->birimler.ork_dovusculeri.saldiri *= etki;
+            ork_imp->birimler.troller.saldiri *= etki;
+            ork_imp->birimler.varg_binicileri.saldiri *= etki;
+            ork_imp->birimler.mizrakcilar.saldiri *= etki;
+        }
+        else if(!strcmp(arastirma->etki_turu, "kritik"))
+        {
+            ork_imp->birimler.ork_dovusculeri.kritik_sans *= etki;
+            ork_imp->birimler.troller.kritik_sans *= etki;
+            ork_imp->birimler.varg_binicileri.kritik_sans *= etki;
+            ork_imp->birimler.mizrakcilar.kritik_sans *= etki;
+        }
+    }
+    else if(!strcmp(arastirma->etkiledigi_birim, "ork_dovusculeri"))
+    {
+        if(!strcmp(arastirma->etki_turu, "savunma"))
+            ork_imp->birimler.ork_dovusculeri.savunma *= etki;
+        else if(!strcmp(arastirma->etki_turu, "saldiri"))
+            ork_imp->birimler.ork_dovusculeri.saldiri *= etki;
+        else if(!strcmp(arastirma->etki_turu, "kritik"))
+            ork_imp->birimler.ork_dovusculeri.kritik_sans *= etki;
+    }
+    else if(!strcmp(arastirma->etkiledigi_birim, "troller"))
+    {
+        if(!strcmp(arastirma->etki_turu, "savunma"))
+            ork_imp->birimler.troller.savunma *= etki;
+        else if(!strcmp(arastirma->etki_turu, "saldiri"))
+            ork_imp->birimler.troller.saldiri *= etki;
+        else if(!strcmp(arastirma->etki_turu, "kritik"))
+            ork_imp->birimler.troller.kritik_sans *= etki;
+    }
+    else if(!strcmp(arastirma->etkiledigi_birim, "varg_binicileri"))
+    {
+        if(!strcmp(arastirma->etki_turu, "savunma"))
+            ork_imp->birimler.varg_binicileri.savunma *= etki;
+        else if(!strcmp(arastirma->etki_turu, "saldiri"))
+            ork_imp->birimler.varg_binicileri.saldiri *= etki;
+        else if(!strcmp(arastirma->etki_turu, "kritik"))
+            ork_imp->birimler.varg_binicileri.kritik_sans *= etki;
+    }
+    else if(!strcmp(arastirma->etkiledigi_birim, "mizrakci"))
+    {
+        if(!strcmp(arastirma->etki_turu, "savunma"))
+            ork_imp->birimler.mizrakcilar.savunma *= etki;
+        else if(!strcmp(arastirma->etki_turu, "saldiri"))
+            ork_imp->birimler.mizrakcilar.saldiri *= etki;
+        else if(!strcmp(arastirma->etki_turu, "kritik"))
+            ork_imp->birimler.mizrakcilar.kritik_sans *= etki;
+    }
+}
+
+void arastirma_etkisi(struct InsanImparatorlugu *insan_imp, struct OrkLegi *ork_imp)
+{
+    struct ArastirmaOzellikler *arastirma;
+    if(insan_imp->arastirma_seviyesi.seviye_1.elit_egitim.deger > 0)
+    {
+        arastirma = &insan_imp->arastirma_seviyesi.seviye_1.elit_egitim;
+        float etki = (100 + arastirma->deger)/100;
+        insan_arastirma_etki_uygula(arastirma, insan_imp, etki);
+    }
+    if(insan_imp->arastirma_seviyesi.seviye_2.elit_egitim.deger > 0)
+    {
+        arastirma = &insan_imp->arastirma_seviyesi.seviye_2.elit_egitim;
+        float etki = (100 + arastirma->deger)/100;
+        insan_arastirma_etki_uygula(arastirma, insan_imp, etki);
+    }
+    if(insan_imp->arastirma_seviyesi.seviye_3.elit_egitim.deger > 0)
+    {
+        arastirma = &insan_imp->arastirma_seviyesi.seviye_3.elit_egitim;
+        float etki = (100 + arastirma->deger)/100;
+        insan_arastirma_etki_uygula(arastirma, insan_imp, etki);
+    }
+
+    if(ork_imp->arastirma_seviyesi.seviye_1.elit_egitim.deger > 0)
+    {
+        arastirma = &ork_imp->arastirma_seviyesi.seviye_1.elit_egitim;
+        float etki = (100 + arastirma->deger)/100;
+        ork_arastirma_etki_uygula(arastirma, ork_imp, etki);
+    }
+    if(ork_imp->arastirma_seviyesi.seviye_2.elit_egitim.deger > 0)
+    {
+        arastirma = &ork_imp->arastirma_seviyesi.seviye_2.elit_egitim;
+        float etki = (100 + arastirma->deger)/100;
+        ork_arastirma_etki_uygula(arastirma, ork_imp, etki);
+    }
+    if(ork_imp->arastirma_seviyesi.seviye_3.elit_egitim.deger > 0)
+    {
+        arastirma = &ork_imp->arastirma_seviyesi.seviye_3.elit_egitim;
+        float etki = (100 + arastirma->deger)/100;
+        ork_arastirma_etki_uygula(arastirma, ork_imp, etki);
+    }
+
+
+
+    if(insan_imp->arastirma_seviyesi.seviye_1.kusatma_ustaligi.deger > 0)
+    {
+        arastirma = &insan_imp->arastirma_seviyesi.seviye_1.kusatma_ustaligi;
+        float etki = (100 + arastirma->deger)/100;
+        insan_arastirma_etki_uygula(arastirma, insan_imp, etki);
+    }
+    if(insan_imp->arastirma_seviyesi.seviye_2.kusatma_ustaligi.deger > 0)
+    {
+        arastirma = &insan_imp->arastirma_seviyesi.seviye_2.kusatma_ustaligi;
+        float etki = (100 + arastirma->deger)/100;
+        insan_arastirma_etki_uygula(arastirma, insan_imp, etki);
+    }
+    if(insan_imp->arastirma_seviyesi.seviye_3.kusatma_ustaligi.deger > 0)
+    {
+        arastirma = &insan_imp->arastirma_seviyesi.seviye_3.kusatma_ustaligi;
+        float etki = (100 + arastirma->deger)/100;
+        insan_arastirma_etki_uygula(arastirma, insan_imp, etki);
+    }
+
+    if(ork_imp->arastirma_seviyesi.seviye_1.kusatma_ustaligi.deger > 0)
+    {
+        arastirma = &ork_imp->arastirma_seviyesi.seviye_1.kusatma_ustaligi;
+        float etki = (100 + arastirma->deger)/100;
+        ork_arastirma_etki_uygula(arastirma, ork_imp, etki);
+    }
+    if(ork_imp->arastirma_seviyesi.seviye_2.kusatma_ustaligi.deger > 0)
+    {
+        arastirma = &ork_imp->arastirma_seviyesi.seviye_2.kusatma_ustaligi;
+        float etki = (100 + arastirma->deger)/100;
+        ork_arastirma_etki_uygula(arastirma, ork_imp, etki);
+    }
+    if(ork_imp->arastirma_seviyesi.seviye_3.kusatma_ustaligi.deger > 0)
+    {
+        arastirma = &ork_imp->arastirma_seviyesi.seviye_3.kusatma_ustaligi;
+        float etki = (100 + arastirma->deger)/100;
+        ork_arastirma_etki_uygula(arastirma, ork_imp, etki);
+    }
+
+
+
+    if(insan_imp->arastirma_seviyesi.seviye_1.saldiri_gelistirmesi.deger > 0)
+    {
+        arastirma = &insan_imp->arastirma_seviyesi.seviye_1.saldiri_gelistirmesi;
+        float etki = (100 + arastirma->deger)/100;
+        insan_arastirma_etki_uygula(arastirma, insan_imp, etki);
+    }
+    if(insan_imp->arastirma_seviyesi.seviye_2.saldiri_gelistirmesi.deger > 0)
+    {
+        arastirma = &insan_imp->arastirma_seviyesi.seviye_2.saldiri_gelistirmesi;
+        float etki = (100 + arastirma->deger)/100;
+        insan_arastirma_etki_uygula(arastirma, insan_imp, etki);
+    }
+    if(insan_imp->arastirma_seviyesi.seviye_3.saldiri_gelistirmesi.deger > 0)
+    {
+        arastirma = &insan_imp->arastirma_seviyesi.seviye_3.saldiri_gelistirmesi;
+        float etki = (100 + arastirma->deger)/100;
+        insan_arastirma_etki_uygula(arastirma, insan_imp, etki);
+    }
+
+    if(ork_imp->arastirma_seviyesi.seviye_1.saldiri_gelistirmesi.deger > 0)
+    {
+        arastirma = &ork_imp->arastirma_seviyesi.seviye_1.saldiri_gelistirmesi;
+        float etki = (100 + arastirma->deger)/100;
+        ork_arastirma_etki_uygula(arastirma, ork_imp, etki);
+    }
+    if(ork_imp->arastirma_seviyesi.seviye_2.saldiri_gelistirmesi.deger > 0)
+    {
+        arastirma = &ork_imp->arastirma_seviyesi.seviye_2.saldiri_gelistirmesi;
+        float etki = (100 + arastirma->deger)/100;
+        ork_arastirma_etki_uygula(arastirma, ork_imp, etki);
+    }
+    if(ork_imp->arastirma_seviyesi.seviye_3.saldiri_gelistirmesi.deger > 0)
+    {
+        arastirma = &ork_imp->arastirma_seviyesi.seviye_3.saldiri_gelistirmesi;
+        float etki = (100 + arastirma->deger)/100;
+        ork_arastirma_etki_uygula(arastirma, ork_imp, etki);
+    }
+
+
+
+    if(insan_imp->arastirma_seviyesi.seviye_1.savunma_ustaligi.deger > 0)
+    {
+        arastirma = &insan_imp->arastirma_seviyesi.seviye_1.savunma_ustaligi;
+        float etki = (100 + arastirma->deger)/100;
+        insan_arastirma_etki_uygula(arastirma, insan_imp, etki);
+    }
+    if(insan_imp->arastirma_seviyesi.seviye_2.savunma_ustaligi.deger > 0)
+    {
+        arastirma = &insan_imp->arastirma_seviyesi.seviye_2.savunma_ustaligi;
+        float etki = (100 + arastirma->deger)/100;
+        insan_arastirma_etki_uygula(arastirma, insan_imp, etki);
+    }
+    if(insan_imp->arastirma_seviyesi.seviye_3.savunma_ustaligi.deger > 0)
+    {
+        arastirma = &insan_imp->arastirma_seviyesi.seviye_3.savunma_ustaligi;
+        float etki = (100 + arastirma->deger)/100;
+        insan_arastirma_etki_uygula(arastirma, insan_imp, etki);
+    }
+
+    if(ork_imp->arastirma_seviyesi.seviye_1.savunma_ustaligi.deger > 0)
+    {
+        arastirma = &ork_imp->arastirma_seviyesi.seviye_1.savunma_ustaligi;
+        float etki = (100 + arastirma->deger)/100;
+        ork_arastirma_etki_uygula(arastirma, ork_imp, etki);
+    }
+    if(ork_imp->arastirma_seviyesi.seviye_2.savunma_ustaligi.deger > 0)
+    {
+        arastirma = &ork_imp->arastirma_seviyesi.seviye_2.savunma_ustaligi;
+        float etki = (100 + arastirma->deger)/100;
+        ork_arastirma_etki_uygula(arastirma, ork_imp, etki);
+    }
+    if(ork_imp->arastirma_seviyesi.seviye_3.savunma_ustaligi.deger > 0)
+    {
+        arastirma = &ork_imp->arastirma_seviyesi.seviye_3.savunma_ustaligi;
+        float etki = (100 + arastirma->deger)/100;
+        ork_arastirma_etki_uygula(arastirma, ork_imp, etki);
+    }
+}
+
+void canavar_kahraman_bonusu_uygula(char *bonus_turu, float bonus_degeri, float *savunma, float *saldiri, float *kritik_sans)
+{
+    if (!strcmp(bonus_turu, "savunma"))
+        *savunma *= (100 + bonus_degeri) / 100;
+
+    else if (!strcmp(bonus_turu, "saldiri"))
+        *saldiri *= (100 + bonus_degeri) / 100;
+
+    else if(!strcmp(bonus_turu, "kritik_sans"))
+        *kritik_sans *= (100 + bonus_degeri) / 100;
+}
+
+void ork_kahraman_etkisi(struct KahramanOzellikler *kahraman, struct BirimlerOrg *birimlerOrg)
+{
+    if ((int)kahraman->bonus_degeri != 0)
+    {
+        float bonus = kahraman->bonus_degeri;
+
+        if (!strcmp(kahraman->etkiledigi_birim, "ork_dovusculeri"))
+            canavar_kahraman_bonusu_uygula(kahraman->bonus_turu, bonus, &birimlerOrg->ork_dovusculeri.savunma, &birimlerOrg->ork_dovusculeri.saldiri, &birimlerOrg->ork_dovusculeri.kritik_sans);
+
+        else if (!strcmp(kahraman->etkiledigi_birim, "mizrakcilar"))
+            canavar_kahraman_bonusu_uygula(kahraman->bonus_turu, bonus, &birimlerOrg->mizrakcilar.savunma, &birimlerOrg->mizrakcilar.saldiri, &birimlerOrg->mizrakcilar.kritik_sans);
+
+        else if (!strcmp(kahraman->etkiledigi_birim, "varg_binicileri"))
+            canavar_kahraman_bonusu_uygula(kahraman->bonus_turu, bonus, &birimlerOrg->varg_binicileri.savunma, &birimlerOrg->varg_binicileri.saldiri, &birimlerOrg->varg_binicileri.kritik_sans);
+
+        else if (!strcmp(kahraman->etkiledigi_birim, "troller"))
+            canavar_kahraman_bonusu_uygula(kahraman->bonus_turu, bonus, &birimlerOrg->troller.savunma, &birimlerOrg->troller.saldiri, &birimlerOrg->troller.kritik_sans);
+
+        else if (!strcmp(kahraman->etkiledigi_birim, "tum_birimlere"))
+        {
+            canavar_kahraman_bonusu_uygula(kahraman->bonus_turu, bonus, &birimlerOrg->ork_dovusculeri.savunma, &birimlerOrg->ork_dovusculeri.saldiri, &birimlerOrg->ork_dovusculeri.kritik_sans);
+            canavar_kahraman_bonusu_uygula(kahraman->bonus_turu, bonus, &birimlerOrg->mizrakcilar.savunma, &birimlerOrg->mizrakcilar.saldiri, &birimlerOrg->mizrakcilar.kritik_sans);
+            canavar_kahraman_bonusu_uygula(kahraman->bonus_turu, bonus, &birimlerOrg->varg_binicileri.savunma, &birimlerOrg->varg_binicileri.saldiri, &birimlerOrg->varg_binicileri.kritik_sans);
+            canavar_kahraman_bonusu_uygula(kahraman->bonus_turu, bonus, &birimlerOrg->troller.savunma, &birimlerOrg->troller.saldiri, &birimlerOrg->troller.kritik_sans);
+        }
+    }
+}
+
+void ork_canavar_etkisi(struct CanavarOzellikler *canavar, struct BirimlerOrg *birimlerOrg)
+{
+    if ((int)canavar->etki_degeri != 0)
+    {
+        float bonus = canavar->etki_degeri;
+
+        if (!strcmp(canavar->etkiledigi_birim, "ork_dovusculeri"))
+            canavar_kahraman_bonusu_uygula(canavar->etki_turu, bonus, &birimlerOrg->ork_dovusculeri.savunma, &birimlerOrg->ork_dovusculeri.saldiri, &birimlerOrg->ork_dovusculeri.kritik_sans);
+
+        else if (!strcmp(canavar->etkiledigi_birim, "mizrakcilar"))
+            canavar_kahraman_bonusu_uygula(canavar->etki_turu, bonus, &birimlerOrg->mizrakcilar.savunma, &birimlerOrg->mizrakcilar.saldiri, &birimlerOrg->mizrakcilar.kritik_sans);
+
+        else if (!strcmp(canavar->etkiledigi_birim, "varg_binicileri"))
+            canavar_kahraman_bonusu_uygula(canavar->etki_turu, bonus, &birimlerOrg->varg_binicileri.savunma, &birimlerOrg->varg_binicileri.saldiri, &birimlerOrg->varg_binicileri.kritik_sans);
+
+        else if (!strcmp(canavar->etkiledigi_birim, "troller"))
+            canavar_kahraman_bonusu_uygula(canavar->etki_turu, bonus, &birimlerOrg->troller.savunma, &birimlerOrg->troller.saldiri, &birimlerOrg->troller.kritik_sans);
+
+        else if (!strcmp(canavar->etkiledigi_birim, "tum_birimlere"))
+        {
+            canavar_kahraman_bonusu_uygula(canavar->etki_turu, bonus, &birimlerOrg->ork_dovusculeri.savunma, &birimlerOrg->ork_dovusculeri.saldiri, &birimlerOrg->ork_dovusculeri.kritik_sans);
+            canavar_kahraman_bonusu_uygula(canavar->etki_turu, bonus, &birimlerOrg->mizrakcilar.savunma, &birimlerOrg->mizrakcilar.saldiri, &birimlerOrg->mizrakcilar.kritik_sans);
+            canavar_kahraman_bonusu_uygula(canavar->etki_turu, bonus, &birimlerOrg->varg_binicileri.savunma, &birimlerOrg->varg_binicileri.saldiri, &birimlerOrg->varg_binicileri.kritik_sans);
+            canavar_kahraman_bonusu_uygula(canavar->etki_turu, bonus, &birimlerOrg->troller.savunma, &birimlerOrg->troller.saldiri, &birimlerOrg->troller.kritik_sans);
+        }
+    }
+}
+
+void ork_kahraman_canavar_etkisi(struct KahramanlarOrg *kahraman, struct CanavarlarOrg *canavar, struct BirimlerOrg *birimler)
+{
+    ork_kahraman_etkisi(&kahraman->Goruk_Vahsi, birimler);
+    ork_kahraman_etkisi(&kahraman->Thruk_Kemikkiran, birimler);
+    ork_kahraman_etkisi(&kahraman->Ugar_Zalim, birimler);
+    ork_kahraman_etkisi(&kahraman->Vrog_Kafakiran, birimler);
+    ork_canavar_etkisi(&canavar->Ates_Iblisi, birimler);
+    ork_canavar_etkisi(&canavar->Buz_Devleri, birimler);
+    ork_canavar_etkisi(&canavar->Camur_Devleri, birimler);
+    ork_canavar_etkisi(&canavar->Golge_Kurtlari, birimler);
+    ork_canavar_etkisi(&canavar->Kara_Troll, birimler);
+    ork_canavar_etkisi(&canavar->Makrog_Savas_Beyi, birimler);
+}
+
+void insan_kahraman_etkisi(struct KahramanOzellikler *kahraman, struct BirimlerInsan *birimlerInsan)
+{
+    if ((int)kahraman->bonus_degeri != 0)
+    {
+        float bonus = kahraman->bonus_degeri;
+
+        if (!strcmp(kahraman->etkiledigi_birim, "piyade"))
+            canavar_kahraman_bonusu_uygula(kahraman->bonus_turu, bonus, &birimlerInsan->piyadeler.savunma, &birimlerInsan->piyadeler.saldiri, &birimlerInsan->piyadeler.kritik_sans);
+
+        else if (!strcmp(kahraman->etkiledigi_birim, "okcu"))
+            canavar_kahraman_bonusu_uygula(kahraman->bonus_turu, bonus, &birimlerInsan->okcular.savunma, &birimlerInsan->okcular.saldiri, &birimlerInsan->okcular.kritik_sans);
+
+        else if (!strcmp(kahraman->etkiledigi_birim, "kusatma_makinesi"))
+            canavar_kahraman_bonusu_uygula(kahraman->bonus_turu, bonus, &birimlerInsan->kusatma_makineleri.savunma, &birimlerInsan->kusatma_makineleri.saldiri, &birimlerInsan->kusatma_makineleri.kritik_sans);
+
+        else if (!strcmp(kahraman->etkiledigi_birim, "suvari"))
+            canavar_kahraman_bonusu_uygula(kahraman->bonus_turu, bonus, &birimlerInsan->suvariler.savunma, &birimlerInsan->suvariler.saldiri, &birimlerInsan->suvariler.kritik_sans);
+
+        else if (!strcmp(kahraman->etkiledigi_birim, "tum_birimlere"))
+        {
+            canavar_kahraman_bonusu_uygula(kahraman->bonus_turu, bonus, &birimlerInsan->piyadeler.savunma, &birimlerInsan->piyadeler.saldiri, &birimlerInsan->piyadeler.kritik_sans);
+            canavar_kahraman_bonusu_uygula(kahraman->bonus_turu, bonus, &birimlerInsan->okcular.savunma, &birimlerInsan->okcular.saldiri, &birimlerInsan->okcular.kritik_sans);
+            canavar_kahraman_bonusu_uygula(kahraman->bonus_turu, bonus, &birimlerInsan->kusatma_makineleri.savunma, &birimlerInsan->kusatma_makineleri.saldiri, &birimlerInsan->kusatma_makineleri.kritik_sans);
+            canavar_kahraman_bonusu_uygula(kahraman->bonus_turu, bonus, &birimlerInsan->suvariler.savunma, &birimlerInsan->suvariler.saldiri, &birimlerInsan->suvariler.kritik_sans);
+        }
+    }
+}
+
+void insan_canavar_etkisi(struct CanavarOzellikler *canavar, struct BirimlerInsan *birimlerInsan)
+{
+    if ((int)canavar->etki_degeri != 0)
+    {
+        float bonus = canavar->etki_degeri;
+
+        if (!strcmp(canavar->etkiledigi_birim, "piyade"))
+            canavar_kahraman_bonusu_uygula(canavar->etki_turu, bonus, &birimlerInsan->piyadeler.savunma, &birimlerInsan->piyadeler.saldiri, &birimlerInsan->piyadeler.kritik_sans);
+
+        else if (!strcmp(canavar->etkiledigi_birim, "okcu"))
+            canavar_kahraman_bonusu_uygula(canavar->etki_turu, bonus, &birimlerInsan->okcular.savunma, &birimlerInsan->okcular.saldiri, &birimlerInsan->okcular.kritik_sans);
+
+        else if (!strcmp(canavar->etkiledigi_birim, "kusatma_makinesi"))
+            canavar_kahraman_bonusu_uygula(canavar->etki_turu, bonus, &birimlerInsan->kusatma_makineleri.savunma, &birimlerInsan->kusatma_makineleri.saldiri, &birimlerInsan->kusatma_makineleri.kritik_sans);
+
+        else if (!strcmp(canavar->etkiledigi_birim, "suvari"))
+            canavar_kahraman_bonusu_uygula(canavar->etki_turu, bonus, &birimlerInsan->suvariler.savunma, &birimlerInsan->suvariler.saldiri, &birimlerInsan->suvariler.kritik_sans);
+
+        else if (!strcmp(canavar->etkiledigi_birim, "tum_birimlere"))
+        {
+            canavar_kahraman_bonusu_uygula(canavar->etki_turu, bonus, &birimlerInsan->piyadeler.savunma, &birimlerInsan->piyadeler.saldiri, &birimlerInsan->piyadeler.kritik_sans);
+            canavar_kahraman_bonusu_uygula(canavar->etki_turu, bonus, &birimlerInsan->okcular.savunma, &birimlerInsan->okcular.saldiri, &birimlerInsan->okcular.kritik_sans);
+            canavar_kahraman_bonusu_uygula(canavar->etki_turu, bonus, &birimlerInsan->kusatma_makineleri.savunma, &birimlerInsan->kusatma_makineleri.saldiri, &birimlerInsan->kusatma_makineleri.kritik_sans);
+            canavar_kahraman_bonusu_uygula(canavar->etki_turu, bonus, &birimlerInsan->suvariler.savunma, &birimlerInsan->suvariler.saldiri, &birimlerInsan->suvariler.kritik_sans);
+        }
+    }
+}
+
+void insan_kahraman_canavar_etkisi(struct KahramanlarInsan *kahraman, struct CanavarlarInsan *canavar, struct BirimlerInsan *birimler)
+{
+    insan_kahraman_etkisi(&kahraman->Alparslan, birimler);
+    insan_kahraman_etkisi(&kahraman->Mete_Han, birimler);
+    insan_kahraman_etkisi(&kahraman->Fatih_Sultan_Mehmet, birimler);
+    insan_kahraman_etkisi(&kahraman->Tugrul_Bey, birimler);
+    insan_kahraman_etkisi(&kahraman->Yavuz_Sultan_Selim, birimler);
+    insan_canavar_etkisi(&canavar->Agri_Dagi_Devleri, birimler);
+    insan_canavar_etkisi(&canavar->Ejderha, birimler);
+    insan_canavar_etkisi(&canavar->Karakurt, birimler);
+    insan_canavar_etkisi(&canavar->Samur, birimler);
+    insan_canavar_etkisi(&canavar->Tepegoz, birimler);
+}
+
 
 void hasar_dagilimi_ork(struct BirimlerOrg *birim, float netHasar, float toplamSavunmaGucu)
 {
@@ -642,11 +1108,21 @@ int senaryoIndirme()
     CURLcode sonuc;
     int i = 0;
 
-    const char url[5][80] = {"https://yapbenzet.org.tr/1.json", "https://yapbenzet.org.tr/2.json", "https://yapbenzet.org.tr/3.json", "https://yapbenzet.org.tr/4.json", "https://yapbenzet.org.tr/5.json"};
+    const char url[10][80] = {"https://yapbenzet.org.tr/1.json", "https://yapbenzet.org.tr/2.json", "https://yapbenzet.org.tr/3.json",
+                              "https://yapbenzet.org.tr/4.json", "https://yapbenzet.org.tr/5.json", "https://yapbenzet.org.tr/6.json", "https://yapbenzet.org.tr/7.json",
+                              "https://yapbenzet.org.tr/8.json", "https://yapbenzet.org.tr/9.json", "https://yapbenzet.org.tr/10.json"
+                             };
     char *outfilename;
 
-    printf("Kacinci linki indirmek istiyorsunuz : ");
-    scanf("%d", &i);
+    do
+    {
+        printf("Kacinci linki indirmek istiyorsunuz : ");
+        scanf("%d", &i);
+        if(i > 10 || i < 1)
+            printf("Lutfen 1-10 arasindaki sayiyi giriniz!!!\n\n");
+    }
+    while(i > 10 || i < 1);
+
     outfilename = "./Files/senaryo.json";
 
     curl_global_init(CURL_GLOBAL_DEFAULT);
@@ -1217,33 +1693,101 @@ void canavarAyristir(struct Savasanlar *s, char *dosyaAdi, char *birimAd)
     fclose(dosya);
 }
 
-void arastirmaAtama(struct Savasanlar *s, char *okunan_satir, char *birimAd, char *grup, int seviye)
+void arastirmaEtkiledigiBirimAta(struct ArastirmaOzellikler *arastir, char *okunan_satir)
+{
+    if (strstr(okunan_satir, "piyade"))
+        strcpy(arastir->etkiledigi_birim, "piyade");
+    else if (strstr(okunan_satir, "okcu"))
+        strcpy(arastir->etkiledigi_birim, "okcu");
+    else if (strstr(okunan_satir, "kusatma_makineleri"))
+        strcpy(arastir->etkiledigi_birim, "kusatma_makineleri");
+    else if (strstr(okunan_satir, "suvari"))
+        strcpy(arastir->etkiledigi_birim, "suvari");
+    else if (strstr(okunan_satir, "ork_dovusculeri"))
+        strcpy(arastir->etkiledigi_birim, "ork_dovusculeri");
+    else if (strstr(okunan_satir, "troller"))
+        strcpy(arastir->etkiledigi_birim, "troller");
+    else if (strstr(okunan_satir, "varg_binicileri"))
+        strcpy(arastir->etkiledigi_birim, "varg_binicileri");
+    else if (strstr(okunan_satir, "mizrakci"))
+        strcpy(arastir->etkiledigi_birim, "mizrakci");
+    else if (strstr(okunan_satir, "tum_birimler"))
+        strcpy(arastir->etkiledigi_birim, "tum_birimler");
+
+    if(strstr(okunan_satir, "savunma"))
+        strcpy(arastir->etki_turu, "savunma");
+    else if(strstr(okunan_satir, "saldiri"))
+        strcpy(arastir->etki_turu, "saldiri");
+    else if(strstr(okunan_satir, "kritik"))
+        strcpy(arastir->etki_turu, "kritik");
+}
+
+void arastirmaAtama(struct Savasanlar *s, char *okunan_satir, char *birimAd, char *grup, int seviye, int i)
 {
     float deger;
 
-    sscanf(okunan_satir, "%*[^0-9]%f", &deger);
+    struct ArastirmaOzellikler *arastir;
+
+    if(i == 5)
+        sscanf(okunan_satir, "%*[^0-9]%f", &deger);
     if (!strcmp(birimAd, "savunma_ustaligi"))
     {
         if (seviye == 1)
         {
             if(!strcmp(grup, "insan_imparatorlugu"))
-                s->insanImparatorlugu.arastirma_seviyesi.seviye_1.savunma_ustaligi.deger = deger;
+            {
+                arastir = &s->insanImparatorlugu.arastirma_seviyesi.seviye_1.savunma_ustaligi;
+                if(i == 5)
+                    arastir->deger = deger;
+                else
+                    arastirmaEtkiledigiBirimAta(arastir, okunan_satir);
+            }
             else if(!strcmp(grup, "ork_legi"))
-                s->orkLegi.arastirma_seviyesi.seviye_1.savunma_ustaligi.deger = deger;
+            {
+                arastir = &s->orkLegi.arastirma_seviyesi.seviye_1.savunma_ustaligi;
+                if(i == 5)
+                    arastir->deger = deger;
+                else
+                    arastirmaEtkiledigiBirimAta(arastir, okunan_satir);
+            }
         }
         else if (seviye == 2)
         {
             if(!strcmp(grup, "insan_imparatorlugu"))
-                s->insanImparatorlugu.arastirma_seviyesi.seviye_2.savunma_ustaligi.deger = deger;
+            {
+                arastir = &s->insanImparatorlugu.arastirma_seviyesi.seviye_2.savunma_ustaligi;
+                if(i == 5)
+                    arastir->deger = deger;
+                else
+                    arastirmaEtkiledigiBirimAta(arastir, okunan_satir);
+            }
             else if(!strcmp(grup, "ork_legi"))
-                s->orkLegi.arastirma_seviyesi.seviye_2.savunma_ustaligi.deger = deger;
+            {
+                arastir = &s->orkLegi.arastirma_seviyesi.seviye_2.savunma_ustaligi;
+                if(i == 5)
+                    arastir->deger = deger;
+                else
+                    arastirmaEtkiledigiBirimAta(arastir, okunan_satir);
+            }
         }
         else if (seviye == 3)
         {
             if(!strcmp(grup, "insan_imparatorlugu"))
-                s->insanImparatorlugu.arastirma_seviyesi.seviye_3.savunma_ustaligi.deger = deger;
+            {
+                arastir = &s->insanImparatorlugu.arastirma_seviyesi.seviye_3.savunma_ustaligi;
+                if(i == 5)
+                    arastir->deger = deger;
+                else
+                    arastirmaEtkiledigiBirimAta(arastir, okunan_satir);
+            }
             else if(!strcmp(grup, "ork_legi"))
-                s->orkLegi.arastirma_seviyesi.seviye_3.savunma_ustaligi.deger = deger;
+            {
+                arastir = &s->orkLegi.arastirma_seviyesi.seviye_3.savunma_ustaligi;
+                if(i == 5)
+                    arastir->deger = deger;
+                else
+                    arastirmaEtkiledigiBirimAta(arastir, okunan_satir);
+            }
         }
     }
     else if (!strcmp(birimAd, "saldiri_gelistirmesi"))
@@ -1251,23 +1795,59 @@ void arastirmaAtama(struct Savasanlar *s, char *okunan_satir, char *birimAd, cha
         if (seviye == 1)
         {
             if(!strcmp(grup, "insan_imparatorlugu"))
-                s->insanImparatorlugu.arastirma_seviyesi.seviye_1.saldiri_gelistirmesi.deger = deger;
+            {
+                arastir = &s->insanImparatorlugu.arastirma_seviyesi.seviye_1.saldiri_gelistirmesi;
+                if(i == 5)
+                    arastir->deger = deger;
+                else
+                    arastirmaEtkiledigiBirimAta(arastir, okunan_satir);
+            }
             else if(!strcmp(grup, "ork_legi"))
-                s->orkLegi.arastirma_seviyesi.seviye_1.saldiri_gelistirmesi.deger = deger;
+            {
+                arastir = &s->orkLegi.arastirma_seviyesi.seviye_1.saldiri_gelistirmesi;
+                if(i == 5)
+                    arastir->deger = deger;
+                else
+                    arastirmaEtkiledigiBirimAta(arastir, okunan_satir);
+            }
         }
         else if (seviye == 2)
         {
             if(!strcmp(grup, "insan_imparatorlugu"))
-                s->insanImparatorlugu.arastirma_seviyesi.seviye_2.saldiri_gelistirmesi.deger = deger;
+            {
+                arastir = &s->insanImparatorlugu.arastirma_seviyesi.seviye_2.saldiri_gelistirmesi;
+                if(i == 5)
+                    arastir->deger = deger;
+                else
+                    arastirmaEtkiledigiBirimAta(arastir, okunan_satir);
+            }
             else if(!strcmp(grup, "ork_legi"))
-                s->orkLegi.arastirma_seviyesi.seviye_2.saldiri_gelistirmesi.deger = deger;
+            {
+                arastir = &s->orkLegi.arastirma_seviyesi.seviye_2.saldiri_gelistirmesi;
+                if(i == 5)
+                    arastir->deger = deger;
+                else
+                    arastirmaEtkiledigiBirimAta(arastir, okunan_satir);
+            }
         }
         else if (seviye == 3)
         {
             if(!strcmp(grup, "insan_imparatorlugu"))
-                s->insanImparatorlugu.arastirma_seviyesi.seviye_3.saldiri_gelistirmesi.deger = deger;
+            {
+                arastir = &s->insanImparatorlugu.arastirma_seviyesi.seviye_3.saldiri_gelistirmesi;
+                if(i == 5)
+                    arastir->deger = deger;
+                else
+                    arastirmaEtkiledigiBirimAta(arastir, okunan_satir);
+            }
             else if(!strcmp(grup, "ork_legi"))
-                s->orkLegi.arastirma_seviyesi.seviye_3.saldiri_gelistirmesi.deger = deger;
+            {
+                arastir = &s->orkLegi.arastirma_seviyesi.seviye_3.saldiri_gelistirmesi;
+                if(i == 5)
+                    arastir->deger = deger;
+                else
+                    arastirmaEtkiledigiBirimAta(arastir, okunan_satir);
+            }
         }
     }
     else if (!strcmp(birimAd, "elit_egitim"))
@@ -1275,23 +1855,59 @@ void arastirmaAtama(struct Savasanlar *s, char *okunan_satir, char *birimAd, cha
         if (seviye == 1)
         {
             if(!strcmp(grup, "insan_imparatorlugu"))
-                s->insanImparatorlugu.arastirma_seviyesi.seviye_1.elit_egitim.deger = deger;
+            {
+                arastir = &s->insanImparatorlugu.arastirma_seviyesi.seviye_1.elit_egitim;
+                if(i == 5)
+                    arastir->deger = deger;
+                else
+                    arastirmaEtkiledigiBirimAta(arastir, okunan_satir);
+            }
             else if(!strcmp(grup, "ork_legi"))
-                s->orkLegi.arastirma_seviyesi.seviye_1.elit_egitim.deger = deger;
+            {
+                arastir = &s->orkLegi.arastirma_seviyesi.seviye_1.elit_egitim;
+                if(i == 5)
+                    arastir->deger = deger;
+                else
+                    arastirmaEtkiledigiBirimAta(arastir, okunan_satir);
+            }
         }
         else if (seviye == 2)
         {
             if(!strcmp(grup, "insan_imparatorlugu"))
-                s->insanImparatorlugu.arastirma_seviyesi.seviye_2.elit_egitim.deger = deger;
+            {
+                arastir = &s->insanImparatorlugu.arastirma_seviyesi.seviye_2.elit_egitim;
+                if(i == 5)
+                    arastir->deger = deger;
+                else
+                    arastirmaEtkiledigiBirimAta(arastir, okunan_satir);
+            }
             else if(!strcmp(grup, "ork_legi"))
-                s->orkLegi.arastirma_seviyesi.seviye_2.elit_egitim.deger = deger;
+            {
+                arastir = &s->orkLegi.arastirma_seviyesi.seviye_2.elit_egitim;
+                if(i == 5)
+                    arastir->deger = deger;
+                else
+                    arastirmaEtkiledigiBirimAta(arastir, okunan_satir);
+            }
         }
         else if (seviye == 3)
         {
             if(!strcmp(grup, "insan_imparatorlugu"))
-                s->insanImparatorlugu.arastirma_seviyesi.seviye_3.elit_egitim.deger = deger;
+            {
+                arastir = &s->insanImparatorlugu.arastirma_seviyesi.seviye_3.elit_egitim;
+                if(i == 5)
+                    arastir->deger = deger;
+                else
+                    arastirmaEtkiledigiBirimAta(arastir, okunan_satir);
+            }
             else if(!strcmp(grup, "ork_legi"))
-                s->orkLegi.arastirma_seviyesi.seviye_3.elit_egitim.deger = deger;
+            {
+                arastir = &s->orkLegi.arastirma_seviyesi.seviye_3.elit_egitim;
+                if(i == 5)
+                    arastir->deger = deger;
+                else
+                    arastirmaEtkiledigiBirimAta(arastir, okunan_satir);
+            }
         }
     }
     else if (!strcmp(birimAd, "kusatma_ustaligi"))
@@ -1299,23 +1915,59 @@ void arastirmaAtama(struct Savasanlar *s, char *okunan_satir, char *birimAd, cha
         if (seviye == 1)
         {
             if(!strcmp(grup, "insan_imparatorlugu"))
-                s->insanImparatorlugu.arastirma_seviyesi.seviye_1.kusatma_ustaligi.deger = deger;
+            {
+                arastir = &s->insanImparatorlugu.arastirma_seviyesi.seviye_1.kusatma_ustaligi;
+                if(i == 5)
+                    arastir->deger = deger;
+                else
+                    arastirmaEtkiledigiBirimAta(arastir, okunan_satir);
+            }
             else if(!strcmp(grup, "ork_legi"))
-                s->orkLegi.arastirma_seviyesi.seviye_1.kusatma_ustaligi.deger = deger;
+            {
+                arastir = &s->orkLegi.arastirma_seviyesi.seviye_1.kusatma_ustaligi;
+                if(i == 5)
+                    arastir->deger = deger;
+                else
+                    arastirmaEtkiledigiBirimAta(arastir, okunan_satir);
+            }
         }
         else if (seviye == 2)
         {
             if(!strcmp(grup, "insan_imparatorlugu"))
-                s->insanImparatorlugu.arastirma_seviyesi.seviye_2.kusatma_ustaligi.deger = deger;
+            {
+                arastir = &s->insanImparatorlugu.arastirma_seviyesi.seviye_2.kusatma_ustaligi;
+                if(i == 5)
+                    arastir->deger = deger;
+                else
+                    arastirmaEtkiledigiBirimAta(arastir, okunan_satir);
+            }
             else if(!strcmp(grup, "ork_legi"))
-                s->orkLegi.arastirma_seviyesi.seviye_2.kusatma_ustaligi.deger = deger;
+            {
+                arastir = &s->orkLegi.arastirma_seviyesi.seviye_2.kusatma_ustaligi;
+                if(i == 5)
+                    arastir->deger = deger;
+                else
+                    arastirmaEtkiledigiBirimAta(arastir, okunan_satir);
+            }
         }
         else if (seviye == 3)
         {
             if(!strcmp(grup, "insan_imparatorlugu"))
-                s->insanImparatorlugu.arastirma_seviyesi.seviye_3.kusatma_ustaligi.deger = deger;
+            {
+                arastir = &s->insanImparatorlugu.arastirma_seviyesi.seviye_3.kusatma_ustaligi;
+                if(i == 5)
+                    arastir->deger = deger;
+                else
+                    arastirmaEtkiledigiBirimAta(arastir, okunan_satir);
+            }
             else if(!strcmp(grup, "ork_legi"))
-                s->orkLegi.arastirma_seviyesi.seviye_3.kusatma_ustaligi.deger = deger;
+            {
+                arastir = &s->orkLegi.arastirma_seviyesi.seviye_3.kusatma_ustaligi;
+                if(i == 5)
+                    arastir->deger = deger;
+                else
+                    arastirmaEtkiledigiBirimAta(arastir, okunan_satir);
+            }
         }
     }
 }
@@ -1340,6 +1992,7 @@ void arastirmaAyristir(struct Savasanlar *s, char *birimAd, char *grup, int sevi
     char ayrisan[200];
     char okunan_satir[100];
     char okunan_satir2[100];
+    int kontrol = 0;
 
     FILE *dosya;
     dosya = fopen(dosyaAdi, "r");
@@ -1358,34 +2011,43 @@ void arastirmaAyristir(struct Savasanlar *s, char *birimAd, char *grup, int sevi
             {
                 if(seviye == 1)
                 {
-                    if (strstr(okunan_satir, "seviye_1"))
+                    if (strstr(okunan_satir, "seviye_1") && kontrol == 0)
                     {
+                        kontrol = 1;
                         while (fgets(okunan_satir2, 100, dosya) && !strchr(okunan_satir2, '}'))
                         {
                             if (strstr(okunan_satir2, "deger"))
-                                arastirmaAtama(s, okunan_satir2, birimAd, grup, 1);
+                                arastirmaAtama(s, okunan_satir2, birimAd, grup, 1, 5);
+                            else if(strstr(okunan_satir2, "aciklama"))
+                                arastirmaAtama(s, okunan_satir2, birimAd, grup, 1, 0);
                         }
                     }
                 }
                 else if(seviye == 2)
                 {
-                    if (strstr(okunan_satir, "seviye_2"))
+                    if (strstr(okunan_satir, "seviye_2") && kontrol == 0)
                     {
+                        kontrol = 1;
                         while (fgets(okunan_satir2, 100, dosya) && !strchr(okunan_satir2, '}'))
                         {
                             if (strstr(okunan_satir2, "deger"))
-                                arastirmaAtama(s, okunan_satir2, birimAd, grup, 2);
+                                arastirmaAtama(s, okunan_satir2, birimAd, grup, 2, 5);
+                            else if(strstr(okunan_satir2, "aciklama"))
+                                arastirmaAtama(s, okunan_satir2, birimAd, grup, 2, 0);
                         }
                     }
                 }
                 else if(seviye == 3)
                 {
-                    if (strstr(okunan_satir, "seviye_3"))
+                    if (strstr(okunan_satir, "seviye_3") && kontrol == 0)
                     {
+                        kontrol = 1;
                         while (fgets(okunan_satir2, 100, dosya) && !strchr(okunan_satir2, '}'))
                         {
                             if (strstr(okunan_satir2, "deger"))
-                                arastirmaAtama(s, okunan_satir2, birimAd, grup, 3);
+                                arastirmaAtama(s, okunan_satir2, birimAd, grup, 3, 5);
+                            else if(strstr(okunan_satir2, "aciklama"))
+                                arastirmaAtama(s, okunan_satir2, birimAd, grup, 3, 0);
                         }
                     }
                 }
