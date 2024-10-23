@@ -1,8 +1,9 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
-#include <unistd.h> //acces , getcw i�in
+#include <unistd.h> //acces , getcw icin
 #include <curl/curl.h>
+#include <SDL2/SDL.h>
 
 struct SavasanOzellikler
 {
@@ -143,20 +144,20 @@ void arastirmaAyristir(struct Savasanlar *s, char *birimAd, char *grup, int sevi
 void senaryoAyristir(struct Savasanlar *s);
 
 void savas(struct Savasanlar *s);
-float insanSaldiriHesapla(struct BirimlerInsan *birim, int saldiri_sayisi);
+float insanSaldiriHesapla(struct BirimlerInsan *birim, int saldiri_sayisi, FILE *savas_sim);
 float insanSavunmaHesapla(struct BirimlerInsan *birim);
-float orkSaldiriHesapla(struct BirimlerOrg *birim, int saldiri_sayisi);
+float orkSaldiriHesapla(struct BirimlerOrg *birim, int saldiri_sayisi, FILE *savas_sim);
 float orkSavunmaHesapla(struct BirimlerOrg *birim);
-void birim_guncelle_ork(struct BirimlerOrg *birim, float netHasar, float toplamSavunmaGucu);
+void birim_guncelle_ork(struct BirimlerOrg *birim, float netHasar, float toplamSavunmaGucu, FILE *savas_sim);
 void hasar_dagilimi_ork(struct BirimlerOrg *birim, float netHasar, float toplamSavunmaGucu);
-void birim_kayip_ork(struct BirimlerOrg *birim);
+void birim_kayip_ork(struct BirimlerOrg *birim, FILE *savas_sim);
 void olen_hasardagit_ork(struct BirimlerOrg *birim, float birimHasarDagilimi, float kalanSavunmaGucu);
-void birim_guncelle_insan(struct BirimlerInsan *birim, float netHasar, float toplamSavunmaGucu);
+void birim_guncelle_insan(struct BirimlerInsan *birim, float netHasar, float toplamSavunmaGucu, FILE *savas_sim);
 void hasar_dagilimi_insan(struct BirimlerInsan *birim, float netHasar, float toplamSavunmaGucu);
 void olen_hasardagit_insan(struct BirimlerInsan *birim, float birimHasarDagilimi, float kalanSavunmaGucu);
-void birim_kayip_insan(struct BirimlerInsan *birim);
-void saglik_durumu_ork(struct BirimlerOrg *birim);
-void saglik_durumu_insan(struct BirimlerInsan *birim);
+void birim_kayip_insan(struct BirimlerInsan *birim, FILE *savas_sim);
+void saglik_durumu_ork(struct BirimlerOrg *birim, FILE *savas_sim);
+void saglik_durumu_insan(struct BirimlerInsan *birim, FILE *savas_sim);
 void insan_kahraman_etkisi(struct KahramanOzellikler *kahraman, struct BirimlerInsan *birimlerInsan, int kahraman_bil, FILE *savas_sim);
 void insan_kahraman_canavar_etkisi(struct KahramanlarInsan *kahraman, struct CanavarlarInsan *canavar, struct BirimlerInsan *birimler, FILE *savas_sim);
 void canavar_kahraman_bonusu_uygula(char *bonus_turu, float bonus_degeri, float *savunma, float *saldiri, float *kritik_sans);
@@ -165,13 +166,15 @@ void ork_kahraman_canavar_etkisi(struct KahramanlarOrg *kahraman, struct Canavar
 void ork_kahraman_etkisi(struct KahramanOzellikler *kahraman, struct BirimlerOrg *birimlerOrg, int kahraman_bil, FILE *savas_sim);
 void ork_canavar_etkisi(struct CanavarOzellikler *canavar, struct BirimlerOrg *birimlerOrg, int canavar_bil, FILE *savas_sim);
 void arastirma_etkisi(struct InsanImparatorlugu *insan_imp, struct OrkLegi *ork_imp, FILE *savas_sim);
-void insan_arastirma_etki_uygula(struct ArastirmaOzellikler *arastirma, struct InsanImparatorlugu *insan_imp, float etki);
-void ork_arastirma_etki_uygula(struct ArastirmaOzellikler *arastirma, struct OrkLegi *ork_imp, float etki);
+void insan_arastirma_etki_uygula(struct ArastirmaOzellikler *arastirma, struct InsanImparatorlugu *insan_imp, float etki, FILE *savas_sim);
+void ork_arastirma_etki_uygula(struct ArastirmaOzellikler *arastirma, struct OrkLegi *ork_imp, float etki, FILE *savas_sim);
 void yorgunluk_uygula(struct BirimlerInsan *birimInsan, struct BirimlerOrg *birimOrk);
-float kritik_hasar_hesapla(float normal_saldiri, float kritik_sans, int saldiri_sayisi);
+float kritik_hasar_hesapla(float normal_saldiri, float kritik_sans, int saldiri_sayisi, int birim_bil, FILE *savas_sim);
+int ork_ordu_oldu_mu(struct BirimlerOrg *birim);
+int insan_ordu_oldu_mu(struct BirimlerInsan *birim);
 
 
-int main()
+int main(int argc, char *argv[])
 {
     struct Savasanlar *s = (struct Savasanlar *)malloc(sizeof(struct Savasanlar));
     memset(s, 0, sizeof(struct Savasanlar));
@@ -222,9 +225,9 @@ void savas(struct Savasanlar *s)
 
         fprintf(savas_sim,"\n\n***InsanImp icin Kaharaman ve Canavar etkileri***\n");
         insan_kahraman_canavar_etkisi(kahramanInsan, canavarInsan, birimlerInsan, savas_sim);
-        fprintf(savas_sim,"\n\n***OrkImp icin Kaharaman ve Canavar etkileri***\n");
+        fprintf(savas_sim,"\n\n\n***OrkImp icin Kaharaman ve Canavar etkileri***\n");
         ork_kahraman_canavar_etkisi(kahramanOrg, canavarOrg, birimlerOrk, savas_sim);
-        fprintf(savas_sim,"\n\n***Arastirma etkileri***\n");
+        fprintf(savas_sim,"\n\n\n***Arastirma etkileri***\n");
         arastirma_etkisi(&s->insanImparatorlugu, &s->orkLegi, savas_sim);
 
         if (adim_say % 2 == 1)
@@ -232,28 +235,26 @@ void savas(struct Savasanlar *s)
             insan_saldiri_say++;
             fprintf(savas_sim,"\n\n\n####Insan Imparatorlugu saldiriyor.####\n\n");
 
-            float insan_saldiri_gucu = insanSaldiriHesapla(birimlerInsan, insan_saldiri_say);
+            float insan_saldiri_gucu = insanSaldiriHesapla(birimlerInsan, insan_saldiri_say, savas_sim);
             float ork_savunma_gucu = orkSavunmaHesapla(birimlerOrk);
 
-            fprintf(savas_sim,"\nInsan saldiri gucu : %f\n", insan_saldiri_gucu);
+            fprintf(savas_sim,"\n\nInsan saldiri gucu : %f\n", insan_saldiri_gucu);
             fprintf(savas_sim,"\nOrk savunma gucu : %f\n", ork_savunma_gucu);
 
-            if(insan_saldiri_gucu == 0)
-            {
-                fprintf(savas_sim,"\n\nOrk Legi kazandi!!!\n\n");
-                break;
-            }
-            else if(ork_savunma_gucu == 0)
-            {
-                fprintf(savas_sim,"\n\nInsan Imparatorlugu kazandi!!!\n\n");
-                break;
-            }
 
             float orkimp_nethasar = insan_saldiri_gucu - ork_savunma_gucu;
             fprintf(savas_sim,"\nInsan Imparatorlugunun net hasari : %f\n", orkimp_nethasar);
 
             if(orkimp_nethasar > 0)
-                birim_guncelle_ork(birimlerOrk, orkimp_nethasar, ork_savunma_gucu);
+            {
+                fprintf(savas_sim,"\nInsan Imparatorlugunun saldirisinda net hasar pozitif. Ork Legine hasar verdi.\n\n");
+                birim_guncelle_ork(birimlerOrk, orkimp_nethasar, ork_savunma_gucu, savas_sim);
+                if(ork_ordu_oldu_mu(birimlerOrk))
+                {
+                    fprintf(savas_sim,"\n\n\nInsan Imparatorlugu kazandi!!!\n\n");
+                    break;
+                }
+            }
 
         }
         else
@@ -261,28 +262,26 @@ void savas(struct Savasanlar *s)
             ork_saldiri_say++;
             fprintf(savas_sim,"\n\n\n####Ork Legi saldiriyor.####\n\n");
 
-            float ork_saldiri_gucu = orkSaldiriHesapla(birimlerOrk, ork_saldiri_say);
+            float ork_saldiri_gucu = orkSaldiriHesapla(birimlerOrk, ork_saldiri_say, savas_sim);
             float insan_savunma_gucu = insanSavunmaHesapla(birimlerInsan);
 
-            fprintf(savas_sim,"\nOrk saldiri gucu : %f\n", ork_saldiri_gucu);
+            fprintf(savas_sim,"\n\nOrk saldiri gucu : %f\n", ork_saldiri_gucu);
             fprintf(savas_sim,"\nInsan savunma gucu : %f\n", insan_savunma_gucu);
 
-            if(ork_saldiri_gucu == 0)
-            {
-                fprintf(savas_sim,"\n\nInsan Imparatorlugu kazandi!!!\n\n");
-                break;
-            }
-            else if(insan_savunma_gucu == 0)
-            {
-                fprintf(savas_sim,"\n\nOrk Legi kazandi!!!\n\n");
-                break;
-            }
 
             float insanimp_nethasar = ork_saldiri_gucu - insan_savunma_gucu;
             fprintf(savas_sim,"\nOrk Leginin net hasari : %f\n", insanimp_nethasar);
 
             if(insanimp_nethasar > 0)
-                birim_guncelle_insan(birimlerInsan, insanimp_nethasar, insan_savunma_gucu);
+            {
+                fprintf(savas_sim,"\nOrk Leginin saldirisinda net hasar pozitif. Insan Imparatorluguna hasar verdi.\n\n");
+                birim_guncelle_insan(birimlerInsan, insanimp_nethasar, insan_savunma_gucu,savas_sim);
+                if(insan_ordu_oldu_mu(birimlerInsan))
+                {
+                    fprintf(savas_sim,"\n\n\nOrk Legi kazandi!!!\n\n");
+                    break;
+                }
+            }
 
         }
         adim_say++;
@@ -290,131 +289,280 @@ void savas(struct Savasanlar *s)
     fclose(savas_sim);
 }
 
-void insan_arastirma_etki_uygula(struct ArastirmaOzellikler *arastirma, struct InsanImparatorlugu *insan_imp, float etki)
+int ork_ordu_oldu_mu(struct BirimlerOrg *birim)
+{
+    int kontrol = 0;
+    if(birim->mizrakcilar.birimSayi == 0 && birim->ork_dovusculeri.birimSayi == 0 && birim->troller.birimSayi == 0 && birim->varg_binicileri.birimSayi == 0)
+        kontrol = 1;
+    return kontrol;
+}
+
+int insan_ordu_oldu_mu(struct BirimlerInsan *birim)
+{
+    int kontrol = 0;
+    if(birim->kusatma_makineleri.birimSayi == 0 && birim->okcular.birimSayi == 0 && birim->piyadeler.birimSayi == 0 && birim->suvariler.birimSayi == 0)
+        kontrol = 1;
+    return kontrol;
+}
+
+void insan_arastirma_etki_uygula(struct ArastirmaOzellikler *arastirma, struct InsanImparatorlugu *insan_imp, float etki, FILE *savas_sim)
 {
     if(!strcmp(arastirma->etkiledigi_birim, "tum_birimler"))
     {
         if(!strcmp(arastirma->etki_turu, "savunma"))
         {
-            insan_imp->birimler.kusatma_makineleri.savunma *= etki;
-            insan_imp->birimler.okcular.savunma *= etki;
-            insan_imp->birimler.piyadeler.savunma *= etki;
-            insan_imp->birimler.suvariler.savunma *= etki;
+            fprintf(savas_sim,"\nSuvari - Piyade - Okcu - Kusatma mak. birimlerinin eski savunma gucleri = %f - %f - %f - %f dir. ",insan_imp->birimler.suvariler.savunma,insan_imp->birimler.piyadeler.savunma,insan_imp->birimler.okcular.savunma,insan_imp->birimler.kusatma_makineleri.savunma);
+            if(insan_imp->birimler.kusatma_makineleri.birimSayi > 0)
+                insan_imp->birimler.kusatma_makineleri.savunma *= etki;
+            if(insan_imp->birimler.okcular.birimSayi > 0)
+                insan_imp->birimler.okcular.savunma *= etki;
+            if(insan_imp->birimler.piyadeler.birimSayi > 0)
+                insan_imp->birimler.piyadeler.savunma *= etki;
+            if(insan_imp->birimler.suvariler.birimSayi > 0)
+                insan_imp->birimler.suvariler.savunma *= etki;
+            fprintf(savas_sim,"\nSuvari - Piyade - Okcu - Kusatma mak. birimlerinin yeni savunma gucleri = %f - %f - %f - %f dir. ",insan_imp->birimler.suvariler.savunma,insan_imp->birimler.piyadeler.savunma,insan_imp->birimler.okcular.savunma,insan_imp->birimler.kusatma_makineleri.savunma);
         }
         else if(!strcmp(arastirma->etki_turu, "saldiri"))
         {
-            insan_imp->birimler.kusatma_makineleri.saldiri *= etki;
-            insan_imp->birimler.okcular.saldiri *= etki;
-            insan_imp->birimler.piyadeler.saldiri *= etki;
-            insan_imp->birimler.suvariler.saldiri *= etki;
+            fprintf(savas_sim,"\nSuvari - Piyade - Okcu - Kusatma mak. birimlerinin eski saldiri gucleri = %f - %f - %f - %f dir. ",insan_imp->birimler.suvariler.saldiri,insan_imp->birimler.piyadeler.saldiri,insan_imp->birimler.okcular.saldiri,insan_imp->birimler.kusatma_makineleri.saldiri);
+            if(insan_imp->birimler.kusatma_makineleri.birimSayi > 0)
+                insan_imp->birimler.kusatma_makineleri.saldiri *= etki;
+            if(insan_imp->birimler.okcular.birimSayi > 0)
+                insan_imp->birimler.okcular.saldiri *= etki;
+            if(insan_imp->birimler.piyadeler.birimSayi > 0)
+                insan_imp->birimler.piyadeler.saldiri *= etki;
+            if(insan_imp->birimler.suvariler.birimSayi > 0)
+                insan_imp->birimler.suvariler.saldiri *= etki;
+            fprintf(savas_sim,"\nSuvari - Piyade - Okcu - Kusatma mak. birimlerinin yeni saldiri gucleri = %f - %f - %f - %f dir. ",insan_imp->birimler.suvariler.saldiri,insan_imp->birimler.piyadeler.saldiri,insan_imp->birimler.okcular.saldiri,insan_imp->birimler.kusatma_makineleri.saldiri);
         }
         else if(!strcmp(arastirma->etki_turu, "kritik"))
         {
-            insan_imp->birimler.kusatma_makineleri.kritik_sans *= etki;
-            insan_imp->birimler.okcular.kritik_sans *= etki;
-            insan_imp->birimler.piyadeler.kritik_sans *= etki;
-            insan_imp->birimler.suvariler.kritik_sans *= etki;
+            fprintf(savas_sim,"\nSuvari - Piyade - Okcu - Kusatma mak. birimlerinin eski kritik sans gucleri = %f - %f - %f - %f dir. ",insan_imp->birimler.suvariler.kritik_sans,insan_imp->birimler.piyadeler.kritik_sans,insan_imp->birimler.okcular.kritik_sans,insan_imp->birimler.kusatma_makineleri.kritik_sans);
+            if(insan_imp->birimler.kusatma_makineleri.birimSayi > 0)
+                insan_imp->birimler.kusatma_makineleri.kritik_sans *= etki;
+            if(insan_imp->birimler.okcular.birimSayi > 0)
+                insan_imp->birimler.okcular.kritik_sans *= etki;
+            if(insan_imp->birimler.piyadeler.birimSayi > 0)
+                insan_imp->birimler.piyadeler.kritik_sans *= etki;
+            if(insan_imp->birimler.suvariler.birimSayi > 0)
+                insan_imp->birimler.suvariler.kritik_sans *= etki;
+            fprintf(savas_sim,"\nSuvari - Piyade - Okcu - Kusatma mak. birimlerinin yeni kritik sans gucleri = %f - %f - %f - %f dir. ",insan_imp->birimler.suvariler.kritik_sans,insan_imp->birimler.piyadeler.kritik_sans,insan_imp->birimler.okcular.kritik_sans,insan_imp->birimler.kusatma_makineleri.kritik_sans);
         }
     }
-    else if(!strcmp(arastirma->etkiledigi_birim, "kusatma_makineleri"))
+    else if(!strcmp(arastirma->etkiledigi_birim, "kusatma_makineleri") && insan_imp->birimler.kusatma_makineleri.birimSayi > 0)
     {
         if(!strcmp(arastirma->etki_turu, "savunma"))
+        {
+            fprintf(savas_sim,"\nKusatma Makinelerinin eski savunma gucu : %f dir. ",insan_imp->birimler.kusatma_makineleri.savunma);
             insan_imp->birimler.kusatma_makineleri.savunma *= etki;
+            fprintf(savas_sim,"Yeni savunma gucu : %f dir. ",insan_imp->birimler.kusatma_makineleri.savunma);
+        }
         else if(!strcmp(arastirma->etki_turu, "saldiri"))
+        {
+            fprintf(savas_sim,"\nKusatma Makinelerinin eski saldiri gucu : %f dir. ",insan_imp->birimler.kusatma_makineleri.saldiri);
             insan_imp->birimler.kusatma_makineleri.saldiri *= etki;
+            fprintf(savas_sim,"Yeni saldiri gucu : %f dir. ",insan_imp->birimler.kusatma_makineleri.saldiri);
+        }
+
         else if(!strcmp(arastirma->etki_turu, "kritik"))
+        {
+            fprintf(savas_sim,"\nKusatma Makinelerinin eski kritik sans gucu : %f dir. ",insan_imp->birimler.kusatma_makineleri.kritik_sans);
             insan_imp->birimler.kusatma_makineleri.kritik_sans *= etki;
+            fprintf(savas_sim,"Yeni kritik sans gucu : %f dir. ",insan_imp->birimler.kusatma_makineleri.kritik_sans);
+        }
     }
-    else if(!strcmp(arastirma->etkiledigi_birim, "okcu"))
+    else if(!strcmp(arastirma->etkiledigi_birim, "okcu") && insan_imp->birimler.okcular.birimSayi > 0)
     {
         if(!strcmp(arastirma->etki_turu, "savunma"))
+        {
+            fprintf(savas_sim,"\nOkcularin eski savunma gucu : %f dir. ",insan_imp->birimler.okcular.savunma);
             insan_imp->birimler.okcular.savunma *= etki;
+            fprintf(savas_sim,"Yeni savunma gucu : %f dir. ",insan_imp->birimler.okcular.savunma);
+        }
         else if(!strcmp(arastirma->etki_turu, "saldiri"))
+        {
+            fprintf(savas_sim,"\nOkcularin eski saldiri gucu : %f dir. ",insan_imp->birimler.okcular.saldiri);
             insan_imp->birimler.okcular.saldiri *= etki;
+            fprintf(savas_sim,"Yeni saldiri gucu : %f dir. ",insan_imp->birimler.okcular.saldiri);
+        }
         else if(!strcmp(arastirma->etki_turu, "kritik"))
+        {
+            fprintf(savas_sim,"\nOkcularin eski kritik sans gucu : %f dir. ",insan_imp->birimler.okcular.kritik_sans);
             insan_imp->birimler.okcular.kritik_sans *= etki;
+            fprintf(savas_sim,"Yeni kritik sans gucu : %f dir. ",insan_imp->birimler.okcular.kritik_sans);
+        }
     }
-    else if(!strcmp(arastirma->etkiledigi_birim, "piyade"))
+    else if(!strcmp(arastirma->etkiledigi_birim, "piyade") && insan_imp->birimler.piyadeler.birimSayi > 0)
     {
         if(!strcmp(arastirma->etki_turu, "savunma"))
+        {
+            fprintf(savas_sim,"\nPiyadelerin eski savunma gucu : %f dir. ",insan_imp->birimler.piyadeler.savunma);
             insan_imp->birimler.piyadeler.savunma *= etki;
+            fprintf(savas_sim,"Yeni savunma gucu : %f dir. ",insan_imp->birimler.piyadeler.savunma);
+        }
         else if(!strcmp(arastirma->etki_turu, "saldiri"))
+        {
+            fprintf(savas_sim,"\nPiyadelerin eski saldiri gucu : %f dir. ",insan_imp->birimler.piyadeler.saldiri);
             insan_imp->birimler.piyadeler.saldiri *= etki;
+            fprintf(savas_sim,"Yeni saldiri gucu : %f dir. ",insan_imp->birimler.piyadeler.saldiri);
+        }
         else if(!strcmp(arastirma->etki_turu, "kritik"))
+        {
+            fprintf(savas_sim,"\nPiyadelerin eski kritik sans gucu : %f dir. ",insan_imp->birimler.piyadeler.kritik_sans);
             insan_imp->birimler.piyadeler.kritik_sans *= etki;
+            fprintf(savas_sim,"Yeni kritik sans gucu : %f dir. ",insan_imp->birimler.piyadeler.kritik_sans);
+        }
     }
-    else if(!strcmp(arastirma->etkiledigi_birim, "suvari"))
+    else if(!strcmp(arastirma->etkiledigi_birim, "suvari") && insan_imp->birimler.suvariler.birimSayi > 0)
     {
         if(!strcmp(arastirma->etki_turu, "savunma"))
+        {
+            fprintf(savas_sim,"\nSuvarilerin eski savunma gucu : %f dir. ",insan_imp->birimler.suvariler.savunma);
             insan_imp->birimler.suvariler.savunma *= etki;
+            fprintf(savas_sim,"Yeni savunma gucu : %f dir. ",insan_imp->birimler.suvariler.savunma);
+        }
         else if(!strcmp(arastirma->etki_turu, "saldiri"))
+        {
+            fprintf(savas_sim,"\nSuvarilerin eski saldiri gucu : %f dir. ",insan_imp->birimler.suvariler.saldiri);
             insan_imp->birimler.suvariler.saldiri *= etki;
+            fprintf(savas_sim,"Yeni saldiri gucu : %f dir. ",insan_imp->birimler.suvariler.saldiri);
+        }
         else if(!strcmp(arastirma->etki_turu, "kritik"))
+        {
+            fprintf(savas_sim,"\nSuvarilerin eski kritik sans gucu : %f dir. ",insan_imp->birimler.suvariler.kritik_sans);
             insan_imp->birimler.suvariler.kritik_sans *= etki;
+            fprintf(savas_sim,"Yeni kritik sans gucu : %f dir. ",insan_imp->birimler.suvariler.kritik_sans);
+        }
     }
 }
 
-void ork_arastirma_etki_uygula(struct ArastirmaOzellikler *arastirma, struct OrkLegi *ork_imp, float etki)
+void ork_arastirma_etki_uygula(struct ArastirmaOzellikler *arastirma, struct OrkLegi *ork_imp, float etki, FILE *savas_sim)
 {
     if(!strcmp(arastirma->etkiledigi_birim, "tum_birimler"))
     {
         if(!strcmp(arastirma->etki_turu, "savunma"))
         {
-            ork_imp->birimler.ork_dovusculeri.savunma *= etki;
-            ork_imp->birimler.troller.savunma *= etki;
-            ork_imp->birimler.varg_binicileri.savunma *= etki;
-            ork_imp->birimler.mizrakcilar.savunma *= etki;
+            fprintf(savas_sim,"\nOrk Dovusculeri - Troller - Varg Binicileri - Mizrakci birimlerinin eski savunma gucleri = %f - %f - %f - %f dir. ",ork_imp->birimler.ork_dovusculeri.savunma,ork_imp->birimler.troller.savunma,ork_imp->birimler.varg_binicileri.savunma,ork_imp->birimler.mizrakcilar.savunma);
+            if(ork_imp->birimler.ork_dovusculeri.birimSayi > 0)
+                ork_imp->birimler.ork_dovusculeri.savunma *= etki;
+            if(ork_imp->birimler.troller.birimSayi > 0)
+                ork_imp->birimler.troller.savunma *= etki;
+            if(ork_imp->birimler.varg_binicileri.birimSayi > 0)
+                ork_imp->birimler.varg_binicileri.savunma *= etki;
+            if(ork_imp->birimler.mizrakcilar.birimSayi > 0)
+                ork_imp->birimler.mizrakcilar.savunma *= etki;
+            fprintf(savas_sim,"\nOrk Dovusculeri - Troller - Varg Binicileri - Mizrakci birimlerinin yeni savunma gucleri = %f - %f - %f - %f dir. ",ork_imp->birimler.ork_dovusculeri.savunma,ork_imp->birimler.troller.savunma,ork_imp->birimler.varg_binicileri.savunma,ork_imp->birimler.mizrakcilar.savunma);
         }
         else if(!strcmp(arastirma->etki_turu, "saldiri"))
         {
-            ork_imp->birimler.ork_dovusculeri.saldiri *= etki;
-            ork_imp->birimler.troller.saldiri *= etki;
-            ork_imp->birimler.varg_binicileri.saldiri *= etki;
-            ork_imp->birimler.mizrakcilar.saldiri *= etki;
+            fprintf(savas_sim,"\nOrk Dovusculeri - Troller - Varg Binicileri - Mizrakci birimlerinin eski saldiri gucleri = %f - %f - %f - %f dir. ",ork_imp->birimler.ork_dovusculeri.saldiri,ork_imp->birimler.troller.saldiri,ork_imp->birimler.varg_binicileri.saldiri,ork_imp->birimler.mizrakcilar.saldiri);
+            if(ork_imp->birimler.ork_dovusculeri.birimSayi > 0)
+                ork_imp->birimler.ork_dovusculeri.saldiri *= etki;
+            if(ork_imp->birimler.troller.birimSayi > 0)
+                ork_imp->birimler.troller.saldiri *= etki;
+            if(ork_imp->birimler.varg_binicileri.birimSayi > 0)
+                ork_imp->birimler.varg_binicileri.saldiri *= etki;
+            if(ork_imp->birimler.mizrakcilar.birimSayi > 0)
+                ork_imp->birimler.mizrakcilar.saldiri *= etki;
+            fprintf(savas_sim,"\nOrk Dovusculeri - Troller - Varg Binicileri - Mizrakci birimlerinin yeni saldiri gucleri = %f - %f - %f - %f dir. ",ork_imp->birimler.ork_dovusculeri.saldiri,ork_imp->birimler.troller.saldiri,ork_imp->birimler.varg_binicileri.saldiri,ork_imp->birimler.mizrakcilar.saldiri);
         }
         else if(!strcmp(arastirma->etki_turu, "kritik_sans"))
         {
-            ork_imp->birimler.ork_dovusculeri.kritik_sans *= etki;
-            ork_imp->birimler.troller.kritik_sans *= etki;
-            ork_imp->birimler.varg_binicileri.kritik_sans *= etki;
-            ork_imp->birimler.mizrakcilar.kritik_sans *= etki;
+            fprintf(savas_sim,"\nOrk Dovusculeri - Troller - Varg Binicileri - Mizrakci birimlerinin eski kritik sans gucleri = %f - %f - %f - %f dir. ",ork_imp->birimler.ork_dovusculeri.kritik_sans,ork_imp->birimler.troller.kritik_sans,ork_imp->birimler.varg_binicileri.kritik_sans,ork_imp->birimler.mizrakcilar.kritik_sans);
+            if(ork_imp->birimler.ork_dovusculeri.birimSayi > 0)
+                ork_imp->birimler.ork_dovusculeri.kritik_sans *= etki;
+            if(ork_imp->birimler.troller.birimSayi > 0)
+                ork_imp->birimler.troller.kritik_sans *= etki;
+            if(ork_imp->birimler.varg_binicileri.birimSayi > 0)
+                ork_imp->birimler.varg_binicileri.kritik_sans *= etki;
+            if(ork_imp->birimler.mizrakcilar.birimSayi > 0)
+                ork_imp->birimler.mizrakcilar.kritik_sans *= etki;
+            fprintf(savas_sim,"\nOrk Dovusculeri - Troller - Varg Binicileri - Mizrakci birimlerinin yeni kritik sans gucleri = %f - %f - %f - %f dir. ",ork_imp->birimler.ork_dovusculeri.kritik_sans,ork_imp->birimler.troller.kritik_sans,ork_imp->birimler.varg_binicileri.kritik_sans,ork_imp->birimler.mizrakcilar.kritik_sans);
         }
     }
-    else if(!strcmp(arastirma->etkiledigi_birim, "ork_dovusculeri"))
+    else if(!strcmp(arastirma->etkiledigi_birim, "ork_dovusculeri") && ork_imp->birimler.ork_dovusculeri.birimSayi > 0)
     {
         if(!strcmp(arastirma->etki_turu, "savunma"))
+        {
+            fprintf(savas_sim,"\nOrk Dovusculerinin eski savunma gucu : %f dir. ",ork_imp->birimler.ork_dovusculeri.savunma);
             ork_imp->birimler.ork_dovusculeri.savunma *= etki;
+            fprintf(savas_sim,"Yeni savunma gucu : %f dir. ",ork_imp->birimler.ork_dovusculeri.savunma);
+        }
         else if(!strcmp(arastirma->etki_turu, "saldiri"))
+        {
+            fprintf(savas_sim,"\nOrk Dovusculerinin eski saldiri gucu : %f dir. ",ork_imp->birimler.ork_dovusculeri.saldiri);
             ork_imp->birimler.ork_dovusculeri.saldiri *= etki;
+            fprintf(savas_sim,"Yeni saldiri gucu : %f dir. ",ork_imp->birimler.ork_dovusculeri.saldiri);
+        }
         else if(!strcmp(arastirma->etki_turu, "kritik"))
+        {
+            fprintf(savas_sim,"\nOrk Dovusculerinin eski kritik sans gucu : %f dir. ",ork_imp->birimler.ork_dovusculeri.kritik_sans);
             ork_imp->birimler.ork_dovusculeri.kritik_sans *= etki;
+            fprintf(savas_sim,"Yeni kritik sans gucu : %f dir. ",ork_imp->birimler.ork_dovusculeri.kritik_sans);
+        }
     }
-    else if(!strcmp(arastirma->etkiledigi_birim, "troller"))
+    else if(!strcmp(arastirma->etkiledigi_birim, "troller") && ork_imp->birimler.troller.birimSayi > 0)
     {
         if(!strcmp(arastirma->etki_turu, "savunma"))
+        {
+            fprintf(savas_sim,"\nTrollerin eski savunma gucu : %f dir. ",ork_imp->birimler.troller.savunma);
             ork_imp->birimler.troller.savunma *= etki;
+            fprintf(savas_sim,"Yeni savunma gucu : %f dir. ",ork_imp->birimler.troller.savunma);
+        }
         else if(!strcmp(arastirma->etki_turu, "saldiri"))
+        {
+            fprintf(savas_sim,"\nTrollerin eski saldiri gucu : %f dir. ",ork_imp->birimler.troller.saldiri);
             ork_imp->birimler.troller.saldiri *= etki;
+            fprintf(savas_sim,"Yeni saldiri gucu : %f dir. ",ork_imp->birimler.troller.saldiri);
+        }
         else if(!strcmp(arastirma->etki_turu, "kritik"))
+        {
+            fprintf(savas_sim,"\nTrollerin eski kritik sans gucu : %f dir. ",ork_imp->birimler.troller.kritik_sans);
             ork_imp->birimler.troller.kritik_sans *= etki;
+            fprintf(savas_sim,"Yeni kritik sans gucu : %f dir. ",ork_imp->birimler.troller.kritik_sans);
+        }
     }
-    else if(!strcmp(arastirma->etkiledigi_birim, "varg_binicileri"))
+    else if(!strcmp(arastirma->etkiledigi_birim, "varg_binicileri") && ork_imp->birimler.varg_binicileri.birimSayi > 0)
     {
         if(!strcmp(arastirma->etki_turu, "savunma"))
+        {
+            fprintf(savas_sim,"\nVarg Binicilerinin eski savunma gucu : %f dir. ",ork_imp->birimler.varg_binicileri.savunma);
             ork_imp->birimler.varg_binicileri.savunma *= etki;
+            fprintf(savas_sim,"Yeni savunma gucu : %f dir. ",ork_imp->birimler.varg_binicileri.savunma);
+        }
         else if(!strcmp(arastirma->etki_turu, "saldiri"))
+        {
+            fprintf(savas_sim,"\nVarg Binicilerinin eski saldiri gucu : %f dir. ",ork_imp->birimler.varg_binicileri.saldiri);
             ork_imp->birimler.varg_binicileri.saldiri *= etki;
+            fprintf(savas_sim,"Yeni saldiri gucu : %f dir. ",ork_imp->birimler.varg_binicileri.saldiri);
+        }
         else if(!strcmp(arastirma->etki_turu, "kritik"))
+        {
+            fprintf(savas_sim,"\nVarg Binicilerinin eski kritik sans gucu : %f dir. ",ork_imp->birimler.varg_binicileri.kritik_sans);
             ork_imp->birimler.varg_binicileri.kritik_sans *= etki;
+            fprintf(savas_sim,"Yeni kritik sans gucu : %f dir. ",ork_imp->birimler.varg_binicileri.kritik_sans);
+        }
     }
-    else if(!strcmp(arastirma->etkiledigi_birim, "mizrakci"))
+    else if(!strcmp(arastirma->etkiledigi_birim, "mizrakci") && ork_imp->birimler.mizrakcilar.birimSayi > 0)
     {
         if(!strcmp(arastirma->etki_turu, "savunma"))
+        {
+            fprintf(savas_sim,"\nMizrakcinin eski savunma gucu : %f dir. ",ork_imp->birimler.mizrakcilar.savunma);
             ork_imp->birimler.mizrakcilar.savunma *= etki;
+            fprintf(savas_sim,"Yeni savunma gucu : %f dir. ",ork_imp->birimler.mizrakcilar.savunma);
+        }
         else if(!strcmp(arastirma->etki_turu, "saldiri"))
+        {
+            fprintf(savas_sim,"\nMizrakcinin eski saldiri gucu : %f dir. ",ork_imp->birimler.mizrakcilar.saldiri);
             ork_imp->birimler.mizrakcilar.saldiri *= etki;
+            fprintf(savas_sim,"Yeni saldiri gucu : %f dir. ",ork_imp->birimler.mizrakcilar.saldiri);
+        }
         else if(!strcmp(arastirma->etki_turu, "kritik"))
+        {
+            fprintf(savas_sim,"\nMizrakcinin eski kritik sans gucu : %f dir. ",ork_imp->birimler.mizrakcilar.kritik_sans);
             ork_imp->birimler.mizrakcilar.kritik_sans *= etki;
+            fprintf(savas_sim,"Yeni kritik sans gucu : %f dir. ",ork_imp->birimler.mizrakcilar.kritik_sans);
+        }
     }
 }
 
@@ -424,45 +572,45 @@ void arastirma_etkisi(struct InsanImparatorlugu *insan_imp, struct OrkLegi *ork_
     if(insan_imp->arastirma_seviyesi.seviye_1.elit_egitim.deger > 0)
     {
         arastirma = &insan_imp->arastirma_seviyesi.seviye_1.elit_egitim;
-        fprintf(savas_sim,"\nInsan Imp %d. seviye Elit Egitim arastirmasi %s e %%%1.0f %s uyguladi.",arastirma->senaryoSeviyesi, arastirma->etkiledigi_birim, arastirma->deger, arastirma->etki_turu);
+        fprintf(savas_sim,"\n\nInsan Imp %d. seviye Elit Egitim arastirmasi %s e %%%.0f %s uyguladi.",arastirma->senaryoSeviyesi, arastirma->etkiledigi_birim, arastirma->deger, arastirma->etki_turu);
         float etki = (100 + arastirma->deger)/100;
-        insan_arastirma_etki_uygula(arastirma, insan_imp, etki);
+        insan_arastirma_etki_uygula(arastirma, insan_imp, etki, savas_sim);
     }
     if(insan_imp->arastirma_seviyesi.seviye_2.elit_egitim.deger > 0)
     {
         arastirma = &insan_imp->arastirma_seviyesi.seviye_2.elit_egitim;
-        fprintf(savas_sim,"\nInsan Imp %d. seviye Elit Egitim arastirmasi %s e %%%1.0f %s uyguladi.",arastirma->senaryoSeviyesi, arastirma->etkiledigi_birim, arastirma->deger, arastirma->etki_turu);
+        fprintf(savas_sim,"\n\nInsan Imp %d. seviye Elit Egitim arastirmasi %s e %%%.0f %s uyguladi.",arastirma->senaryoSeviyesi, arastirma->etkiledigi_birim, arastirma->deger, arastirma->etki_turu);
         float etki = (100 + arastirma->deger)/100;
-        insan_arastirma_etki_uygula(arastirma, insan_imp, etki);
+        insan_arastirma_etki_uygula(arastirma, insan_imp, etki, savas_sim);
     }
     if(insan_imp->arastirma_seviyesi.seviye_3.elit_egitim.deger > 0)
     {
         arastirma = &insan_imp->arastirma_seviyesi.seviye_3.elit_egitim;
-        fprintf(savas_sim,"\nInsan Imp %d. seviye Elit Egitim arastirmasi %s e %%%1.0f %s uyguladi.",arastirma->senaryoSeviyesi, arastirma->etkiledigi_birim, arastirma->deger, arastirma->etki_turu);
+        fprintf(savas_sim,"\n\nInsan Imp %d. seviye Elit Egitim arastirmasi %s e %%%.0f %s uyguladi.",arastirma->senaryoSeviyesi, arastirma->etkiledigi_birim, arastirma->deger, arastirma->etki_turu);
         float etki = (100 + arastirma->deger)/100;
-        insan_arastirma_etki_uygula(arastirma, insan_imp, etki);
+        insan_arastirma_etki_uygula(arastirma, insan_imp, etki, savas_sim);
     }
 
     if(ork_imp->arastirma_seviyesi.seviye_1.elit_egitim.deger > 0)
     {
         arastirma = &ork_imp->arastirma_seviyesi.seviye_1.elit_egitim;
-        fprintf(savas_sim,"\nOrk Legi %d. seviye Elit Egitim arastirmasi %s e %%%1.0f %s uyguladi.",arastirma->senaryoSeviyesi, arastirma->etkiledigi_birim, arastirma->deger, arastirma->etki_turu);
+        fprintf(savas_sim,"\n\nOrk Legi %d. seviye Elit Egitim arastirmasi %s e %%%.0f %s uyguladi.",arastirma->senaryoSeviyesi, arastirma->etkiledigi_birim, arastirma->deger, arastirma->etki_turu);
         float etki = (100 + arastirma->deger)/100;
-        ork_arastirma_etki_uygula(arastirma, ork_imp, etki);
+        ork_arastirma_etki_uygula(arastirma, ork_imp, etki, savas_sim);
     }
     if(ork_imp->arastirma_seviyesi.seviye_2.elit_egitim.deger > 0)
     {
         arastirma = &ork_imp->arastirma_seviyesi.seviye_2.elit_egitim;
-        fprintf(savas_sim,"\nOrk Legi %d. seviye Elit Egitim arastirmasi %s e %%%1.0f %s uyguladi.",arastirma->senaryoSeviyesi, arastirma->etkiledigi_birim, arastirma->deger, arastirma->etki_turu);
+        fprintf(savas_sim,"\n\nOrk Legi %d. seviye Elit Egitim arastirmasi %s e %%%.0f %s uyguladi.",arastirma->senaryoSeviyesi, arastirma->etkiledigi_birim, arastirma->deger, arastirma->etki_turu);
         float etki = (100 + arastirma->deger)/100;
-        ork_arastirma_etki_uygula(arastirma, ork_imp, etki);
+        ork_arastirma_etki_uygula(arastirma, ork_imp, etki, savas_sim);
     }
     if(ork_imp->arastirma_seviyesi.seviye_3.elit_egitim.deger > 0)
     {
         arastirma = &ork_imp->arastirma_seviyesi.seviye_3.elit_egitim;
-        fprintf(savas_sim,"\nOrk Legi %d. seviye Elit Egitim arastirmasi %s e %%%1.0f %s uyguladi.",arastirma->senaryoSeviyesi, arastirma->etkiledigi_birim, arastirma->deger, arastirma->etki_turu);
+        fprintf(savas_sim,"\n\nOrk Legi %d. seviye Elit Egitim arastirmasi %s e %%%.0f %s uyguladi.",arastirma->senaryoSeviyesi, arastirma->etkiledigi_birim, arastirma->deger, arastirma->etki_turu);
         float etki = (100 + arastirma->deger)/100;
-        ork_arastirma_etki_uygula(arastirma, ork_imp, etki);
+        ork_arastirma_etki_uygula(arastirma, ork_imp, etki, savas_sim);
     }
 
 
@@ -470,45 +618,45 @@ void arastirma_etkisi(struct InsanImparatorlugu *insan_imp, struct OrkLegi *ork_
     if(insan_imp->arastirma_seviyesi.seviye_1.kusatma_ustaligi.deger > 0)
     {
         arastirma = &insan_imp->arastirma_seviyesi.seviye_1.kusatma_ustaligi;
-        fprintf(savas_sim,"\nInsan Imp %d. seviye Kusatma Ustaligi arastirmasi %s e %%%1.0f %s uyguladi.",arastirma->senaryoSeviyesi, arastirma->etkiledigi_birim, arastirma->deger, arastirma->etki_turu);
+        fprintf(savas_sim,"\n\nInsan Imp %d. seviye Kusatma Ustaligi arastirmasi %s e %%%.0f %s uyguladi.",arastirma->senaryoSeviyesi, arastirma->etkiledigi_birim, arastirma->deger, arastirma->etki_turu);
         float etki = (100 + arastirma->deger)/100;
-        insan_arastirma_etki_uygula(arastirma, insan_imp, etki);
+        insan_arastirma_etki_uygula(arastirma, insan_imp, etki, savas_sim);
     }
     if(insan_imp->arastirma_seviyesi.seviye_2.kusatma_ustaligi.deger > 0)
     {
         arastirma = &insan_imp->arastirma_seviyesi.seviye_2.kusatma_ustaligi;
-        fprintf(savas_sim,"\nInsan Imp %d. seviye Kusatma Ustaligi arastirmasi %s e %%%1.0f %s uyguladi.",arastirma->senaryoSeviyesi, arastirma->etkiledigi_birim, arastirma->deger, arastirma->etki_turu);
+        fprintf(savas_sim,"\n\nInsan Imp %d. seviye Kusatma Ustaligi arastirmasi %s e %%%.0f %s uyguladi.",arastirma->senaryoSeviyesi, arastirma->etkiledigi_birim, arastirma->deger, arastirma->etki_turu);
         float etki = (100 + arastirma->deger)/100;
-        insan_arastirma_etki_uygula(arastirma, insan_imp, etki);
+        insan_arastirma_etki_uygula(arastirma, insan_imp, etki, savas_sim);
     }
     if(insan_imp->arastirma_seviyesi.seviye_3.kusatma_ustaligi.deger > 0)
     {
         arastirma = &insan_imp->arastirma_seviyesi.seviye_3.kusatma_ustaligi;
-        fprintf(savas_sim,"\nInsan Imp %d. seviye Kusatma Ustaligi arastirmasi %s e %%%1.0f %s uyguladi.",arastirma->senaryoSeviyesi, arastirma->etkiledigi_birim, arastirma->deger, arastirma->etki_turu);
+        fprintf(savas_sim,"\n\nInsan Imp %d. seviye Kusatma Ustaligi arastirmasi %s e %%%.0f %s uyguladi.",arastirma->senaryoSeviyesi, arastirma->etkiledigi_birim, arastirma->deger, arastirma->etki_turu);
         float etki = (100 + arastirma->deger)/100;
-        insan_arastirma_etki_uygula(arastirma, insan_imp, etki);
+        insan_arastirma_etki_uygula(arastirma, insan_imp, etki, savas_sim);
     }
 
     if(ork_imp->arastirma_seviyesi.seviye_1.kusatma_ustaligi.deger > 0)
     {
         arastirma = &ork_imp->arastirma_seviyesi.seviye_1.kusatma_ustaligi;
-        fprintf(savas_sim,"\nOrk Legi %d. seviye Kusatma Ustaligi arastirmasi %s e %%%1.0f %s uyguladi.",arastirma->senaryoSeviyesi, arastirma->etkiledigi_birim, arastirma->deger, arastirma->etki_turu);
+        fprintf(savas_sim,"\n\nOrk Legi %d. seviye Kusatma Ustaligi arastirmasi %s e %%%.0f %s uyguladi.",arastirma->senaryoSeviyesi, arastirma->etkiledigi_birim, arastirma->deger, arastirma->etki_turu);
         float etki = (100 + arastirma->deger)/100;
-        ork_arastirma_etki_uygula(arastirma, ork_imp, etki);
+        ork_arastirma_etki_uygula(arastirma, ork_imp, etki, savas_sim);
     }
     if(ork_imp->arastirma_seviyesi.seviye_2.kusatma_ustaligi.deger > 0)
     {
         arastirma = &ork_imp->arastirma_seviyesi.seviye_2.kusatma_ustaligi;
-        fprintf(savas_sim,"\nOrk Legi %d. seviye Kusatma Ustaligi arastirmasi %s e %%%1.0f %s uyguladi.",arastirma->senaryoSeviyesi, arastirma->etkiledigi_birim, arastirma->deger, arastirma->etki_turu);
+        fprintf(savas_sim,"\n\nOrk Legi %d. seviye Kusatma Ustaligi arastirmasi %s e %%%.0f %s uyguladi.",arastirma->senaryoSeviyesi, arastirma->etkiledigi_birim, arastirma->deger, arastirma->etki_turu);
         float etki = (100 + arastirma->deger)/100;
-        ork_arastirma_etki_uygula(arastirma, ork_imp, etki);
+        ork_arastirma_etki_uygula(arastirma, ork_imp, etki, savas_sim);
     }
     if(ork_imp->arastirma_seviyesi.seviye_3.kusatma_ustaligi.deger > 0)
     {
         arastirma = &ork_imp->arastirma_seviyesi.seviye_3.kusatma_ustaligi;
-        fprintf(savas_sim,"\nOrk Legi %d. seviye Kusatma Ustaligi arastirmasi %s e %%%1.0f %s uyguladi.",arastirma->senaryoSeviyesi, arastirma->etkiledigi_birim, arastirma->deger, arastirma->etki_turu);
+        fprintf(savas_sim,"\n\nOrk Legi %d. seviye Kusatma Ustaligi arastirmasi %s e %%%.0f %s uyguladi.",arastirma->senaryoSeviyesi, arastirma->etkiledigi_birim, arastirma->deger, arastirma->etki_turu);
         float etki = (100 + arastirma->deger)/100;
-        ork_arastirma_etki_uygula(arastirma, ork_imp, etki);
+        ork_arastirma_etki_uygula(arastirma, ork_imp, etki, savas_sim);
     }
 
 
@@ -516,45 +664,45 @@ void arastirma_etkisi(struct InsanImparatorlugu *insan_imp, struct OrkLegi *ork_
     if(insan_imp->arastirma_seviyesi.seviye_1.saldiri_gelistirmesi.deger > 0)
     {
         arastirma = &insan_imp->arastirma_seviyesi.seviye_1.saldiri_gelistirmesi;
-        fprintf(savas_sim,"\nInsan Imp %d. seviye Saldiri Gelistirmesi arastirmasi %s e %%%1.0f %s uyguladi.",arastirma->senaryoSeviyesi, arastirma->etkiledigi_birim, arastirma->deger, arastirma->etki_turu);
+        fprintf(savas_sim,"\n\nInsan Imp %d. seviye Saldiri Gelistirmesi arastirmasi %s e %%%.0f %s uyguladi.",arastirma->senaryoSeviyesi, arastirma->etkiledigi_birim, arastirma->deger, arastirma->etki_turu);
         float etki = (100 + arastirma->deger)/100;
-        insan_arastirma_etki_uygula(arastirma, insan_imp, etki);
+        insan_arastirma_etki_uygula(arastirma, insan_imp, etki, savas_sim);
     }
     if(insan_imp->arastirma_seviyesi.seviye_2.saldiri_gelistirmesi.deger > 0)
     {
         arastirma = &insan_imp->arastirma_seviyesi.seviye_2.saldiri_gelistirmesi;
-        fprintf(savas_sim,"\nInsan Imp %d. seviye Saldiri Gelistirmesi arastirmasi %s e %%%1.0f %s uyguladi.",arastirma->senaryoSeviyesi, arastirma->etkiledigi_birim, arastirma->deger, arastirma->etki_turu);
+        fprintf(savas_sim,"\n\nInsan Imp %d. seviye Saldiri Gelistirmesi arastirmasi %s e %%%.0f %s uyguladi.",arastirma->senaryoSeviyesi, arastirma->etkiledigi_birim, arastirma->deger, arastirma->etki_turu);
         float etki = (100 + arastirma->deger)/100;
-        insan_arastirma_etki_uygula(arastirma, insan_imp, etki);
+        insan_arastirma_etki_uygula(arastirma, insan_imp, etki, savas_sim);
     }
     if(insan_imp->arastirma_seviyesi.seviye_3.saldiri_gelistirmesi.deger > 0)
     {
         arastirma = &insan_imp->arastirma_seviyesi.seviye_3.saldiri_gelistirmesi;
-        fprintf(savas_sim,"\nInsan Imp %d. seviye Saldiri Gelistirmesi arastirmasi %s e %%%1.0f %s uyguladi.",arastirma->senaryoSeviyesi, arastirma->etkiledigi_birim, arastirma->deger, arastirma->etki_turu);
+        fprintf(savas_sim,"\n\nInsan Imp %d. seviye Saldiri Gelistirmesi arastirmasi %s e %%%.0f %s uyguladi.",arastirma->senaryoSeviyesi, arastirma->etkiledigi_birim, arastirma->deger, arastirma->etki_turu);
         float etki = (100 + arastirma->deger)/100;
-        insan_arastirma_etki_uygula(arastirma, insan_imp, etki);
+        insan_arastirma_etki_uygula(arastirma, insan_imp, etki, savas_sim);
     }
 
     if(ork_imp->arastirma_seviyesi.seviye_1.saldiri_gelistirmesi.deger > 0)
     {
         arastirma = &ork_imp->arastirma_seviyesi.seviye_1.saldiri_gelistirmesi;
-        fprintf(savas_sim,"\nOrk Legi %d. seviye Saldiri Gelistirmesi arastirmasi %s e %%%1.0f %s uyguladi.",arastirma->senaryoSeviyesi, arastirma->etkiledigi_birim, arastirma->deger, arastirma->etki_turu);
+        fprintf(savas_sim,"\n\nOrk Legi %d. seviye Saldiri Gelistirmesi arastirmasi %s e %%%.0f %s uyguladi.",arastirma->senaryoSeviyesi, arastirma->etkiledigi_birim, arastirma->deger, arastirma->etki_turu);
         float etki = (100 + arastirma->deger)/100;
-        ork_arastirma_etki_uygula(arastirma, ork_imp, etki);
+        ork_arastirma_etki_uygula(arastirma, ork_imp, etki, savas_sim);
     }
     if(ork_imp->arastirma_seviyesi.seviye_2.saldiri_gelistirmesi.deger > 0)
     {
         arastirma = &ork_imp->arastirma_seviyesi.seviye_2.saldiri_gelistirmesi;
-        fprintf(savas_sim,"\nOrk Legi %d. seviye Saldiri Gelistirmesi arastirmasi %s e %%%1.0f %s uyguladi.",arastirma->senaryoSeviyesi, arastirma->etkiledigi_birim, arastirma->deger, arastirma->etki_turu);
+        fprintf(savas_sim,"\n\nOrk Legi %d. seviye Saldiri Gelistirmesi arastirmasi %s e %%%.0f %s uyguladi.",arastirma->senaryoSeviyesi, arastirma->etkiledigi_birim, arastirma->deger, arastirma->etki_turu);
         float etki = (100 + arastirma->deger)/100;
-        ork_arastirma_etki_uygula(arastirma, ork_imp, etki);
+        ork_arastirma_etki_uygula(arastirma, ork_imp, etki, savas_sim);
     }
     if(ork_imp->arastirma_seviyesi.seviye_3.saldiri_gelistirmesi.deger > 0)
     {
         arastirma = &ork_imp->arastirma_seviyesi.seviye_3.saldiri_gelistirmesi;
-        fprintf(savas_sim,"\nOrk Legi %d. seviye Saldiri Gelistirmesi arastirmasi %s e %%%1.0f %s uyguladi.",arastirma->senaryoSeviyesi, arastirma->etkiledigi_birim, arastirma->deger, arastirma->etki_turu);
+        fprintf(savas_sim,"\n\nOrk Legi %d. seviye Saldiri Gelistirmesi arastirmasi %s e %%%.0f %s uyguladi.",arastirma->senaryoSeviyesi, arastirma->etkiledigi_birim, arastirma->deger, arastirma->etki_turu);
         float etki = (100 + arastirma->deger)/100;
-        ork_arastirma_etki_uygula(arastirma, ork_imp, etki);
+        ork_arastirma_etki_uygula(arastirma, ork_imp, etki, savas_sim);
     }
 
 
@@ -562,45 +710,45 @@ void arastirma_etkisi(struct InsanImparatorlugu *insan_imp, struct OrkLegi *ork_
     if(insan_imp->arastirma_seviyesi.seviye_1.savunma_ustaligi.deger > 0)
     {
         arastirma = &insan_imp->arastirma_seviyesi.seviye_1.savunma_ustaligi;
-        fprintf(savas_sim,"\nInsan Imp %d. seviye Savunma Ustaligi arastirmasi %s e %%%1.0f %s uyguladi.",arastirma->senaryoSeviyesi, arastirma->etkiledigi_birim, arastirma->deger, arastirma->etki_turu);
+        fprintf(savas_sim,"\n\nInsan Imp %d. seviye Savunma Ustaligi arastirmasi %s e %%%.0f %s uyguladi.",arastirma->senaryoSeviyesi, arastirma->etkiledigi_birim, arastirma->deger, arastirma->etki_turu);
         float etki = (100 + arastirma->deger)/100;
-        insan_arastirma_etki_uygula(arastirma, insan_imp, etki);
+        insan_arastirma_etki_uygula(arastirma, insan_imp, etki, savas_sim);
     }
     if(insan_imp->arastirma_seviyesi.seviye_2.savunma_ustaligi.deger > 0)
     {
         arastirma = &insan_imp->arastirma_seviyesi.seviye_2.savunma_ustaligi;
-        fprintf(savas_sim,"\nInsan Imp %d. seviye Savunma Ustaligi arastirmasi %s e %%%1.0f %s uyguladi.",arastirma->senaryoSeviyesi, arastirma->etkiledigi_birim, arastirma->deger, arastirma->etki_turu);
+        fprintf(savas_sim,"\n\nInsan Imp %d. seviye Savunma Ustaligi arastirmasi %s e %%%.0f %s uyguladi.",arastirma->senaryoSeviyesi, arastirma->etkiledigi_birim, arastirma->deger, arastirma->etki_turu);
         float etki = (100 + arastirma->deger)/100;
-        insan_arastirma_etki_uygula(arastirma, insan_imp, etki);
+        insan_arastirma_etki_uygula(arastirma, insan_imp, etki, savas_sim);
     }
     if(insan_imp->arastirma_seviyesi.seviye_3.savunma_ustaligi.deger > 0)
     {
         arastirma = &insan_imp->arastirma_seviyesi.seviye_3.savunma_ustaligi;
-        fprintf(savas_sim,"\nInsan Imp %d. seviye Savunma Ustaligi arastirmasi %s e %%%1.0f %s uyguladi.",arastirma->senaryoSeviyesi, arastirma->etkiledigi_birim, arastirma->deger, arastirma->etki_turu);
+        fprintf(savas_sim,"\n\nInsan Imp %d. seviye Savunma Ustaligi arastirmasi %s e %%%.0f %s uyguladi.",arastirma->senaryoSeviyesi, arastirma->etkiledigi_birim, arastirma->deger, arastirma->etki_turu);
         float etki = (100 + arastirma->deger)/100;
-        insan_arastirma_etki_uygula(arastirma, insan_imp, etki);
+        insan_arastirma_etki_uygula(arastirma, insan_imp, etki, savas_sim);
     }
 
     if(ork_imp->arastirma_seviyesi.seviye_1.savunma_ustaligi.deger > 0)
     {
         arastirma = &ork_imp->arastirma_seviyesi.seviye_1.savunma_ustaligi;
-        fprintf(savas_sim,"\nOrk Legi %d. seviye Savunma Ustaligi arastirmasi %s e %%%1.0f %s uyguladi.",arastirma->senaryoSeviyesi, arastirma->etkiledigi_birim, arastirma->deger, arastirma->etki_turu);
+        fprintf(savas_sim,"\n\nOrk Legi %d. seviye Savunma Ustaligi arastirmasi %s e %%%.0f %s uyguladi.",arastirma->senaryoSeviyesi, arastirma->etkiledigi_birim, arastirma->deger, arastirma->etki_turu);
         float etki = (100 + arastirma->deger)/100;
-        ork_arastirma_etki_uygula(arastirma, ork_imp, etki);
+        ork_arastirma_etki_uygula(arastirma, ork_imp, etki, savas_sim);
     }
     if(ork_imp->arastirma_seviyesi.seviye_2.savunma_ustaligi.deger > 0)
     {
         arastirma = &ork_imp->arastirma_seviyesi.seviye_2.savunma_ustaligi;
-        fprintf(savas_sim,"\nOrk Legi %d. seviye Savunma Ustaligi arastirmasi %s e %%%1.0f %s uyguladi.",arastirma->senaryoSeviyesi, arastirma->etkiledigi_birim, arastirma->deger, arastirma->etki_turu);
+        fprintf(savas_sim,"\n\nOrk Legi %d. seviye Savunma Ustaligi arastirmasi %s e %%%.0f %s uyguladi.",arastirma->senaryoSeviyesi, arastirma->etkiledigi_birim, arastirma->deger, arastirma->etki_turu);
         float etki = (100 + arastirma->deger)/100;
-        ork_arastirma_etki_uygula(arastirma, ork_imp, etki);
+        ork_arastirma_etki_uygula(arastirma, ork_imp, etki, savas_sim);
     }
     if(ork_imp->arastirma_seviyesi.seviye_3.savunma_ustaligi.deger > 0)
     {
         arastirma = &ork_imp->arastirma_seviyesi.seviye_3.savunma_ustaligi;
-        fprintf(savas_sim,"\nOrk Legi %d. seviye Savunma Ustaligi arastirmasi %s e %%%1.0f %s uyguladi.",arastirma->senaryoSeviyesi, arastirma->etkiledigi_birim, arastirma->deger, arastirma->etki_turu);
+        fprintf(savas_sim,"\n\nOrk Legi %d. seviye Savunma Ustaligi arastirmasi %s e %%%.0f %s uyguladi.",arastirma->senaryoSeviyesi, arastirma->etkiledigi_birim, arastirma->deger, arastirma->etki_turu);
         float etki = (100 + arastirma->deger)/100;
-        ork_arastirma_etki_uygula(arastirma, ork_imp, etki);
+        ork_arastirma_etki_uygula(arastirma, ork_imp, etki, savas_sim);
     }
 }
 
@@ -613,7 +761,12 @@ void canavar_kahraman_bonusu_uygula(char *bonus_turu, float bonus_degeri, float 
         *saldiri *= (100 + bonus_degeri) / 100;
 
     else if(!strcmp(bonus_turu, "kritik_sans"))
+    {
         *kritik_sans *= (100 + bonus_degeri) / 100;
+        if (*kritik_sans > 100)
+            *kritik_sans = 100;
+    }
+
 }
 
 void ork_kahraman_etkisi(struct KahramanOzellikler *kahraman, struct BirimlerOrg *birimlerOrg, int kahraman_bil, FILE *savas_sim)
@@ -623,41 +776,115 @@ void ork_kahraman_etkisi(struct KahramanOzellikler *kahraman, struct BirimlerOrg
         float bonus = kahraman->bonus_degeri;
 
         if(kahraman_bil == 1)
-            fprintf(savas_sim,"\nGoruk Vahsi kahramani ");
+            fprintf(savas_sim,"\n\nGoruk Vahsi kahramani ");
         else if(kahraman_bil == 2)
-            fprintf(savas_sim,"\nThruk Kemikkiran kahramani ");
+            fprintf(savas_sim,"\n\nThruk Kemikkiran kahramani ");
         else if(kahraman_bil == 3)
-            fprintf(savas_sim,"\nUgar Zalim kahramani ");
+            fprintf(savas_sim,"\n\nUgar Zalim kahramani ");
         else if(kahraman_bil == 4)
-            fprintf(savas_sim,"\nVrog Kafakiran kahramani ");
+            fprintf(savas_sim,"\n\nVrog Kafakiran kahramani ");
 
-        if (!strcmp(kahraman->etkiledigi_birim, "ork_dovusculeri"))
+        if (!strcmp(kahraman->etkiledigi_birim, "ork_dovusculeri") && birimlerOrg->ork_dovusculeri.birimSayi > 0)
         {
-            fprintf(savas_sim," %s birimine %%%1.0f %s bonusu uyguladi.\n",kahraman->etkiledigi_birim, bonus, kahraman->bonus_turu);
+            fprintf(savas_sim," %s birimine %%%.0f %s bonusu uyguladi. \n",kahraman->etkiledigi_birim, bonus, kahraman->bonus_turu);
+            if (!strcmp(kahraman->bonus_turu, "savunma"))
+                fprintf(savas_sim,"%s biriminin eski savunma gucu = %fdir. ",kahraman->etkiledigi_birim, birimlerOrg->ork_dovusculeri.savunma);
+            else if (!strcmp(kahraman->bonus_turu, "saldiri"))
+                fprintf(savas_sim,"%s biriminin eski saldiri gucu = %f dir. ",kahraman->etkiledigi_birim, birimlerOrg->ork_dovusculeri.saldiri);
+            else if(!strcmp(kahraman->bonus_turu, "kritik_sans"))
+                fprintf(savas_sim,"%s biriminin eski kritik sans gucu = %f dir. ",kahraman->etkiledigi_birim, birimlerOrg->ork_dovusculeri.kritik_sans);
+
             canavar_kahraman_bonusu_uygula(kahraman->bonus_turu, bonus, &birimlerOrg->ork_dovusculeri.savunma, &birimlerOrg->ork_dovusculeri.saldiri, &birimlerOrg->ork_dovusculeri.kritik_sans);
+
+            if (!strcmp(kahraman->bonus_turu, "savunma"))
+                fprintf(savas_sim,"Yeni savunma gucu = %fdir.",birimlerOrg->ork_dovusculeri.savunma);
+            else if (!strcmp(kahraman->bonus_turu, "saldiri"))
+                fprintf(savas_sim,"Yeni saldiri gucu = %f dir.",birimlerOrg->ork_dovusculeri.saldiri);
+            else if(!strcmp(kahraman->bonus_turu, "kritik_sans"))
+                fprintf(savas_sim,"Yeni kritik sans gucu = %f dir.",birimlerOrg->ork_dovusculeri.kritik_sans);
         }
-        else if (!strcmp(kahraman->etkiledigi_birim, "mizrakcilar"))
+        else if (!strcmp(kahraman->etkiledigi_birim, "mizrakcilar") && birimlerOrg->mizrakcilar.birimSayi > 0)
         {
-            fprintf(savas_sim," %s birimine %%%1.0f %s bonusu uyguladi.\n",kahraman->etkiledigi_birim, bonus, kahraman->bonus_turu);
+            fprintf(savas_sim," %s birimine %%%.0f %s bonusu uyguladi. \n",kahraman->etkiledigi_birim, bonus, kahraman->bonus_turu);
+            if (!strcmp(kahraman->bonus_turu, "savunma"))
+                fprintf(savas_sim,"%s biriminin eski savunma gucu = %fdir. ",kahraman->etkiledigi_birim, birimlerOrg->mizrakcilar.savunma);
+            else if (!strcmp(kahraman->bonus_turu, "saldiri"))
+                fprintf(savas_sim,"%s biriminin eski saldiri gucu = %f dir. ",kahraman->etkiledigi_birim, birimlerOrg->mizrakcilar.saldiri);
+            else if(!strcmp(kahraman->bonus_turu, "kritik_sans"))
+                fprintf(savas_sim,"%s biriminin eski kritik sans gucu = %f dir. ",kahraman->etkiledigi_birim, birimlerOrg->mizrakcilar.kritik_sans);
+
             canavar_kahraman_bonusu_uygula(kahraman->bonus_turu, bonus, &birimlerOrg->mizrakcilar.savunma, &birimlerOrg->mizrakcilar.saldiri, &birimlerOrg->mizrakcilar.kritik_sans);
+
+            if (!strcmp(kahraman->bonus_turu, "savunma"))
+                fprintf(savas_sim,"Yeni savunma gucu = %fdir.",birimlerOrg->mizrakcilar.savunma);
+            else if (!strcmp(kahraman->bonus_turu, "saldiri"))
+                fprintf(savas_sim,"Yeni saldiri gucu = %f dir.",birimlerOrg->mizrakcilar.saldiri);
+            else if(!strcmp(kahraman->bonus_turu, "kritik_sans"))
+                fprintf(savas_sim,"Yeni kritik sans gucu = %f dir.",birimlerOrg->mizrakcilar.kritik_sans);
         }
-        else if (!strcmp(kahraman->etkiledigi_birim, "varg_binicileri"))
+        else if (!strcmp(kahraman->etkiledigi_birim, "varg_binicileri") && birimlerOrg->varg_binicileri.birimSayi > 0)
         {
-            fprintf(savas_sim," %s birimine %%%1.0f %s bonusu uyguladi.\n",kahraman->etkiledigi_birim, bonus, kahraman->bonus_turu);
+            fprintf(savas_sim," %s birimine %%%.0f %s bonusu uyguladi. \n",kahraman->etkiledigi_birim, bonus, kahraman->bonus_turu);
+            if (!strcmp(kahraman->bonus_turu, "savunma"))
+                fprintf(savas_sim,"%s biriminin eski savunma gucu = %fdir. ",kahraman->etkiledigi_birim, birimlerOrg->varg_binicileri.savunma);
+            else if (!strcmp(kahraman->bonus_turu, "saldiri"))
+                fprintf(savas_sim,"%s biriminin eski saldiri gucu = %f dir. ",kahraman->etkiledigi_birim, birimlerOrg->varg_binicileri.saldiri);
+            else if(!strcmp(kahraman->bonus_turu, "kritik_sans"))
+                fprintf(savas_sim,"%s biriminin eski kritik sans gucu = %f dir. ",kahraman->etkiledigi_birim, birimlerOrg->varg_binicileri.kritik_sans);
+
             canavar_kahraman_bonusu_uygula(kahraman->bonus_turu, bonus, &birimlerOrg->varg_binicileri.savunma, &birimlerOrg->varg_binicileri.saldiri, &birimlerOrg->varg_binicileri.kritik_sans);
+
+            if (!strcmp(kahraman->bonus_turu, "savunma"))
+                fprintf(savas_sim,"Yeni savunma gucu = %fdir.",birimlerOrg->varg_binicileri.savunma);
+            else if (!strcmp(kahraman->bonus_turu, "saldiri"))
+                fprintf(savas_sim,"Yeni saldiri gucu = %f dir.",birimlerOrg->varg_binicileri.saldiri);
+            else if(!strcmp(kahraman->bonus_turu, "kritik_sans"))
+                fprintf(savas_sim,"Yeni kritik sans gucu = %f dir.",birimlerOrg->varg_binicileri.kritik_sans);
         }
-        else if (!strcmp(kahraman->etkiledigi_birim, "troller"))
+        else if (!strcmp(kahraman->etkiledigi_birim, "troller") && birimlerOrg->troller.birimSayi > 0)
         {
-            fprintf(savas_sim," %s birimine %%%1.0f %s bonusu uyguladi.\n",kahraman->etkiledigi_birim, bonus, kahraman->bonus_turu);
+            fprintf(savas_sim," %s birimine %%%.0f %s bonusu uyguladi. \n",kahraman->etkiledigi_birim, bonus, kahraman->bonus_turu);
+            if (!strcmp(kahraman->bonus_turu, "savunma"))
+                fprintf(savas_sim,"%s biriminin eski savunma gucu = %fdir. ",kahraman->etkiledigi_birim, birimlerOrg->troller.savunma);
+            else if (!strcmp(kahraman->bonus_turu, "saldiri"))
+                fprintf(savas_sim,"%s biriminin eski saldiri gucu = %f dir. ",kahraman->etkiledigi_birim, birimlerOrg->troller.saldiri);
+            else if(!strcmp(kahraman->bonus_turu, "kritik_sans"))
+                fprintf(savas_sim,"%s biriminin eski kritik sans gucu = %f dir. ",kahraman->etkiledigi_birim, birimlerOrg->troller.kritik_sans);
+
             canavar_kahraman_bonusu_uygula(kahraman->bonus_turu, bonus, &birimlerOrg->troller.savunma, &birimlerOrg->troller.saldiri, &birimlerOrg->troller.kritik_sans);
+            if (!strcmp(kahraman->bonus_turu, "savunma"))
+                fprintf(savas_sim,"Yeni savunma gucu = %fdir.",birimlerOrg->troller.savunma);
+            else if (!strcmp(kahraman->bonus_turu, "saldiri"))
+                fprintf(savas_sim,"Yeni saldiri gucu = %f dir.",birimlerOrg->troller.saldiri);
+            else if(!strcmp(kahraman->bonus_turu, "kritik_sans"))
+                fprintf(savas_sim,"Yeni kritik sans gucu = %f dir.",birimlerOrg->troller.kritik_sans);
         }
         else if (!strcmp(kahraman->etkiledigi_birim, "tum_birimlere"))
         {
-            fprintf(savas_sim," %s birimine %%%1.0f %s bonusu uyguladi.\n",kahraman->etkiledigi_birim, bonus, kahraman->bonus_turu);
-            canavar_kahraman_bonusu_uygula(kahraman->bonus_turu, bonus, &birimlerOrg->ork_dovusculeri.savunma, &birimlerOrg->ork_dovusculeri.saldiri, &birimlerOrg->ork_dovusculeri.kritik_sans);
-            canavar_kahraman_bonusu_uygula(kahraman->bonus_turu, bonus, &birimlerOrg->mizrakcilar.savunma, &birimlerOrg->mizrakcilar.saldiri, &birimlerOrg->mizrakcilar.kritik_sans);
-            canavar_kahraman_bonusu_uygula(kahraman->bonus_turu, bonus, &birimlerOrg->varg_binicileri.savunma, &birimlerOrg->varg_binicileri.saldiri, &birimlerOrg->varg_binicileri.kritik_sans);
-            canavar_kahraman_bonusu_uygula(kahraman->bonus_turu, bonus, &birimlerOrg->troller.savunma, &birimlerOrg->troller.saldiri, &birimlerOrg->troller.kritik_sans);
+            fprintf(savas_sim," %s birimine %%%.0f %s bonusu uyguladi. \n",kahraman->etkiledigi_birim, bonus, kahraman->bonus_turu);
+            if (!strcmp(kahraman->bonus_turu, "savunma"))
+                fprintf(savas_sim,"Ork Dovusculeri - Mizrakcilar - Varg Binicileri - Troller birimlerinin eski savunma gucleri = %f - %f - %f - %f dir. ",birimlerOrg->ork_dovusculeri.savunma,birimlerOrg->mizrakcilar.savunma,birimlerOrg->varg_binicileri.savunma,birimlerOrg->troller.savunma);
+            else if (!strcmp(kahraman->bonus_turu, "saldiri"))
+                fprintf(savas_sim,"Ork Dovusculeri - Mizrakcilar - Varg Binicileri - Troller birimlerinin eski saldiri gucleri = %f - %f - %f - %f dir. ",birimlerOrg->ork_dovusculeri.saldiri,birimlerOrg->mizrakcilar.saldiri,birimlerOrg->varg_binicileri.saldiri,birimlerOrg->troller.saldiri);
+            else if(!strcmp(kahraman->bonus_turu, "kritik_sans"))
+                fprintf(savas_sim,"Ork Dovusculeri - Mizrakcilar - Varg Binicileri - Troller birimlerinin eski kritik sans gucleri = %f - %f - %f - %f dir. ",birimlerOrg->ork_dovusculeri.kritik_sans,birimlerOrg->mizrakcilar.kritik_sans,birimlerOrg->varg_binicileri.kritik_sans,birimlerOrg->troller.kritik_sans);
+
+            if(birimlerOrg->ork_dovusculeri.birimSayi > 0)
+                canavar_kahraman_bonusu_uygula(kahraman->bonus_turu, bonus, &birimlerOrg->ork_dovusculeri.savunma, &birimlerOrg->ork_dovusculeri.saldiri, &birimlerOrg->ork_dovusculeri.kritik_sans);
+            if(birimlerOrg->mizrakcilar.birimSayi > 0)
+                canavar_kahraman_bonusu_uygula(kahraman->bonus_turu, bonus, &birimlerOrg->mizrakcilar.savunma, &birimlerOrg->mizrakcilar.saldiri, &birimlerOrg->mizrakcilar.kritik_sans);
+            if(birimlerOrg->varg_binicileri.birimSayi > 0)
+                canavar_kahraman_bonusu_uygula(kahraman->bonus_turu, bonus, &birimlerOrg->varg_binicileri.savunma, &birimlerOrg->varg_binicileri.saldiri, &birimlerOrg->varg_binicileri.kritik_sans);
+            if(birimlerOrg->troller.birimSayi > 0)
+                canavar_kahraman_bonusu_uygula(kahraman->bonus_turu, bonus, &birimlerOrg->troller.savunma, &birimlerOrg->troller.saldiri, &birimlerOrg->troller.kritik_sans);
+
+            if (!strcmp(kahraman->bonus_turu, "savunma"))
+                fprintf(savas_sim,"Ork Dovusculeri - Mizrakcilar - Varg Binicileri - Troller birimlerinin yeni savunma gucleri = %f - %f - %f - %f dir. ",birimlerOrg->ork_dovusculeri.savunma,birimlerOrg->mizrakcilar.savunma,birimlerOrg->varg_binicileri.savunma,birimlerOrg->troller.savunma);
+            else if (!strcmp(kahraman->bonus_turu, "saldiri"))
+                fprintf(savas_sim,"Ork Dovusculeri - Mizrakcilar - Varg Binicileri - Troller birimlerinin yeni saldiri gucleri = %f - %f - %f - %f dir. ",birimlerOrg->ork_dovusculeri.saldiri,birimlerOrg->mizrakcilar.saldiri,birimlerOrg->varg_binicileri.saldiri,birimlerOrg->troller.saldiri);
+            else if(!strcmp(kahraman->bonus_turu, "kritik_sans"))
+                fprintf(savas_sim,"Ork Dovusculeri - Mizrakcilar - Varg Binicileri - Troller birimlerinin yeni kritik sans gucleri = %f - %f - %f - %f dir. ",birimlerOrg->ork_dovusculeri.kritik_sans,birimlerOrg->mizrakcilar.kritik_sans,birimlerOrg->varg_binicileri.kritik_sans,birimlerOrg->troller.kritik_sans);
+
         }
     }
 }
@@ -669,49 +896,124 @@ void ork_canavar_etkisi(struct CanavarOzellikler *canavar, struct BirimlerOrg *b
         float bonus = canavar->etki_degeri;
 
         if(canavar_bil == 1)
-            fprintf(savas_sim,"\nAtes Iblisi canavari ");
+            fprintf(savas_sim,"\n\nAtes Iblisi canavari ");
         else if(canavar_bil == 2)
-            fprintf(savas_sim,"\nBuz Devleri canavari ");
+            fprintf(savas_sim,"\n\nBuz Devleri canavari ");
         else if(canavar_bil == 3)
-            fprintf(savas_sim,"\nCamur Devleri canavari ");
+            fprintf(savas_sim,"\n\nCamur Devleri canavari ");
         else if(canavar_bil == 4)
-            fprintf(savas_sim,"\nGolge Kurtlari canavari ");
+            fprintf(savas_sim,"\n\nGolge Kurtlari canavari ");
         else if(canavar_bil == 5)
-            fprintf(savas_sim,"\nKara Troll canavari ");
+            fprintf(savas_sim,"\n\nKara Troll canavari ");
         else if(canavar_bil == 6)
-            fprintf(savas_sim,"\nMakrog Savas Beyi canavari ");
+            fprintf(savas_sim,"\n\nMakrog Savas Beyi canavari ");
 
-        if (!strcmp(canavar->etkiledigi_birim, "ork_dovusculeri"))
+        if (!strcmp(canavar->etkiledigi_birim, "ork_dovusculeri") && birimlerOrg->ork_dovusculeri.birimSayi > 0)
         {
-            fprintf(savas_sim," %s birimine %%%1.0f %s bonusu uyguladi.\n",canavar->etkiledigi_birim, bonus, canavar->etki_turu);
+            fprintf(savas_sim," %s birimine %%%.0f %s bonusu uyguladi. \n",canavar->etkiledigi_birim, bonus, canavar->etki_turu);
+            if (!strcmp(canavar->etki_turu, "savunma"))
+                fprintf(savas_sim,"%s biriminin eski savunma gucu = %fdir. ",canavar->etkiledigi_birim, birimlerOrg->ork_dovusculeri.savunma);
+            else if (!strcmp(canavar->etki_turu, "saldiri"))
+                fprintf(savas_sim,"%s biriminin eski saldiri gucu = %f dir. ",canavar->etkiledigi_birim, birimlerOrg->ork_dovusculeri.saldiri);
+            else if(!strcmp(canavar->etki_turu, "kritik_sans"))
+                fprintf(savas_sim,"%s biriminin eski kritik sans gucu = %f dir. ",canavar->etkiledigi_birim, birimlerOrg->ork_dovusculeri.kritik_sans);
+
             canavar_kahraman_bonusu_uygula(canavar->etki_turu, bonus, &birimlerOrg->ork_dovusculeri.savunma, &birimlerOrg->ork_dovusculeri.saldiri, &birimlerOrg->ork_dovusculeri.kritik_sans);
+
+            if (!strcmp(canavar->etki_turu, "savunma"))
+                fprintf(savas_sim,"Yeni savunma gucu = %fdir. ",birimlerOrg->ork_dovusculeri.savunma);
+            else if (!strcmp(canavar->etki_turu, "saldiri"))
+                fprintf(savas_sim,"Yeni saldiri gucu = %f dir. ",birimlerOrg->ork_dovusculeri.saldiri);
+            else if(!strcmp(canavar->etki_turu, "kritik_sans"))
+                fprintf(savas_sim,"Yeni kritik sans gucu = %f dir. ",birimlerOrg->ork_dovusculeri.kritik_sans);
         }
 
-        else if (!strcmp(canavar->etkiledigi_birim, "mizrakcilar"))
+        else if (!strcmp(canavar->etkiledigi_birim, "mizrakcilar") && birimlerOrg->mizrakcilar.birimSayi > 0)
         {
-            fprintf(savas_sim," %s birimine %%%1.0f %s bonusu uyguladi.\n",canavar->etkiledigi_birim, bonus, canavar->etki_turu);
+            fprintf(savas_sim," %s birimine %%%.0f %s bonusu uyguladi. \n",canavar->etkiledigi_birim, bonus, canavar->etki_turu);
+            if (!strcmp(canavar->etki_turu, "savunma"))
+                fprintf(savas_sim,"%s biriminin eski savunma gucu = %fdir. ",canavar->etkiledigi_birim, birimlerOrg->mizrakcilar.savunma);
+            else if (!strcmp(canavar->etki_turu, "saldiri"))
+                fprintf(savas_sim,"%s biriminin eski saldiri gucu = %f dir. ",canavar->etkiledigi_birim, birimlerOrg->mizrakcilar.saldiri);
+            else if(!strcmp(canavar->etki_turu, "kritik_sans"))
+                fprintf(savas_sim,"%s biriminin eski kritik sans gucu = %f dir. ",canavar->etkiledigi_birim, birimlerOrg->mizrakcilar.kritik_sans);
+
             canavar_kahraman_bonusu_uygula(canavar->etki_turu, bonus, &birimlerOrg->mizrakcilar.savunma, &birimlerOrg->mizrakcilar.saldiri, &birimlerOrg->mizrakcilar.kritik_sans);
+
+            if (!strcmp(canavar->etki_turu, "savunma"))
+                fprintf(savas_sim,"Yeni savunma gucu = %fdir. ",birimlerOrg->mizrakcilar.savunma);
+            else if (!strcmp(canavar->etki_turu, "saldiri"))
+                fprintf(savas_sim,"Yeni saldiri gucu = %f dir. ",birimlerOrg->mizrakcilar.saldiri);
+            else if(!strcmp(canavar->etki_turu, "kritik_sans"))
+                fprintf(savas_sim,"Yeni kritik sans gucu = %f dir. ",birimlerOrg->mizrakcilar.kritik_sans);
         }
 
-        else if (!strcmp(canavar->etkiledigi_birim, "varg_binicileri"))
+        else if (!strcmp(canavar->etkiledigi_birim, "varg_binicileri") && birimlerOrg->varg_binicileri.birimSayi > 0)
         {
-            fprintf(savas_sim," %s birimine %%%1.0f %s bonusu uyguladi.\n",canavar->etkiledigi_birim, bonus, canavar->etki_turu);
+            fprintf(savas_sim," %s birimine %%%.0f %s bonusu uyguladi. \n",canavar->etkiledigi_birim, bonus, canavar->etki_turu);
+            if (!strcmp(canavar->etki_turu, "savunma"))
+                fprintf(savas_sim,"%s biriminin eski savunma gucu = %fdir. ",canavar->etkiledigi_birim, birimlerOrg->varg_binicileri.savunma);
+            else if (!strcmp(canavar->etki_turu, "saldiri"))
+                fprintf(savas_sim,"%s biriminin eski saldiri gucu = %f dir. ",canavar->etkiledigi_birim, birimlerOrg->varg_binicileri.saldiri);
+            else if(!strcmp(canavar->etki_turu, "kritik_sans"))
+                fprintf(savas_sim,"%s biriminin eski kritik sans gucu = %f dir. ",canavar->etkiledigi_birim, birimlerOrg->varg_binicileri.kritik_sans);
+
             canavar_kahraman_bonusu_uygula(canavar->etki_turu, bonus, &birimlerOrg->varg_binicileri.savunma, &birimlerOrg->varg_binicileri.saldiri, &birimlerOrg->varg_binicileri.kritik_sans);
+
+            if (!strcmp(canavar->etki_turu, "savunma"))
+                fprintf(savas_sim,"Yeni savunma gucu = %fdir. ",birimlerOrg->varg_binicileri.savunma);
+            else if (!strcmp(canavar->etki_turu, "saldiri"))
+                fprintf(savas_sim,"Yeni saldiri gucu = %f dir. ",birimlerOrg->varg_binicileri.saldiri);
+            else if(!strcmp(canavar->etki_turu, "kritik_sans"))
+                fprintf(savas_sim,"Yeni kritik sans gucu = %f dir. ",birimlerOrg->varg_binicileri.kritik_sans);
         }
 
-        else if (!strcmp(canavar->etkiledigi_birim, "troller"))
+        else if (!strcmp(canavar->etkiledigi_birim, "troller") && birimlerOrg->troller.birimSayi > 0)
         {
-            fprintf(savas_sim," %s birimine %%%1.0f %s bonusu uyguladi.\n",canavar->etkiledigi_birim, bonus, canavar->etki_turu);
+            fprintf(savas_sim," %s birimine %%%.0f %s bonusu uyguladi. \n",canavar->etkiledigi_birim, bonus, canavar->etki_turu);
+            if (!strcmp(canavar->etki_turu, "savunma"))
+                fprintf(savas_sim,"%s biriminin eski savunma gucu = %fdir. ",canavar->etkiledigi_birim, birimlerOrg->troller.savunma);
+            else if (!strcmp(canavar->etki_turu, "saldiri"))
+                fprintf(savas_sim,"%s biriminin eski saldiri gucu = %f dir. ",canavar->etkiledigi_birim, birimlerOrg->troller.saldiri);
+            else if(!strcmp(canavar->etki_turu, "kritik_sans"))
+                fprintf(savas_sim,"%s biriminin eski kritik sans gucu = %f dir. ",canavar->etkiledigi_birim, birimlerOrg->troller.kritik_sans);
+
             canavar_kahraman_bonusu_uygula(canavar->etki_turu, bonus, &birimlerOrg->troller.savunma, &birimlerOrg->troller.saldiri, &birimlerOrg->troller.kritik_sans);
+
+            if (!strcmp(canavar->etki_turu, "savunma"))
+                fprintf(savas_sim,"Yeni savunma gucu = %fdir. ",birimlerOrg->troller.savunma);
+            else if (!strcmp(canavar->etki_turu, "saldiri"))
+                fprintf(savas_sim,"Yeni saldiri gucu = %f dir. ",birimlerOrg->troller.saldiri);
+            else if(!strcmp(canavar->etki_turu, "kritik_sans"))
+                fprintf(savas_sim,"Yeni kritik sans gucu = %f dir. ",birimlerOrg->troller.kritik_sans);
         }
 
         else if (!strcmp(canavar->etkiledigi_birim, "tum_birimlere"))
         {
-            fprintf(savas_sim," %s birimine %%%1.0f %s bonusu uyguladi.\n",canavar->etkiledigi_birim, bonus, canavar->etki_turu);
-            canavar_kahraman_bonusu_uygula(canavar->etki_turu, bonus, &birimlerOrg->ork_dovusculeri.savunma, &birimlerOrg->ork_dovusculeri.saldiri, &birimlerOrg->ork_dovusculeri.kritik_sans);
-            canavar_kahraman_bonusu_uygula(canavar->etki_turu, bonus, &birimlerOrg->mizrakcilar.savunma, &birimlerOrg->mizrakcilar.saldiri, &birimlerOrg->mizrakcilar.kritik_sans);
-            canavar_kahraman_bonusu_uygula(canavar->etki_turu, bonus, &birimlerOrg->varg_binicileri.savunma, &birimlerOrg->varg_binicileri.saldiri, &birimlerOrg->varg_binicileri.kritik_sans);
-            canavar_kahraman_bonusu_uygula(canavar->etki_turu, bonus, &birimlerOrg->troller.savunma, &birimlerOrg->troller.saldiri, &birimlerOrg->troller.kritik_sans);
+            fprintf(savas_sim," %s birimine %%%.0f %s bonusu uyguladi. \n",canavar->etkiledigi_birim, bonus, canavar->etki_turu);
+            if (!strcmp(canavar->etki_turu, "savunma"))
+                fprintf(savas_sim,"Ork Dovusculeri - Mizrakcilar - Varg Binicileri - Troller birimlerinin eski savunma gucleri = %f - %f - %f - %f dir. ",birimlerOrg->ork_dovusculeri.savunma,birimlerOrg->mizrakcilar.savunma,birimlerOrg->varg_binicileri.savunma,birimlerOrg->troller.savunma);
+            else if (!strcmp(canavar->etki_turu, "saldiri"))
+                fprintf(savas_sim,"Ork Dovusculeri - Mizrakcilar - Varg Binicileri - Troller birimlerinin eski saldiri gucleri = %f - %f - %f - %f dir. ",birimlerOrg->ork_dovusculeri.saldiri,birimlerOrg->mizrakcilar.saldiri,birimlerOrg->varg_binicileri.saldiri,birimlerOrg->troller.saldiri);
+            else if(!strcmp(canavar->etki_turu, "kritik_sans"))
+                fprintf(savas_sim,"Ork Dovusculeri - Mizrakcilar - Varg Binicileri - Troller birimlerinin eski kritik sans gucleri = %f - %f - %f - %f dir. ",birimlerOrg->ork_dovusculeri.kritik_sans,birimlerOrg->mizrakcilar.kritik_sans,birimlerOrg->varg_binicileri.kritik_sans,birimlerOrg->troller.kritik_sans);
+
+            if(birimlerOrg->ork_dovusculeri.birimSayi > 0)
+                canavar_kahraman_bonusu_uygula(canavar->etki_turu, bonus, &birimlerOrg->ork_dovusculeri.savunma, &birimlerOrg->ork_dovusculeri.saldiri, &birimlerOrg->ork_dovusculeri.kritik_sans);
+            if(birimlerOrg->mizrakcilar.birimSayi > 0)
+                canavar_kahraman_bonusu_uygula(canavar->etki_turu, bonus, &birimlerOrg->mizrakcilar.savunma, &birimlerOrg->mizrakcilar.saldiri, &birimlerOrg->mizrakcilar.kritik_sans);
+            if(birimlerOrg->varg_binicileri.birimSayi > 0)
+                canavar_kahraman_bonusu_uygula(canavar->etki_turu, bonus, &birimlerOrg->varg_binicileri.savunma, &birimlerOrg->varg_binicileri.saldiri, &birimlerOrg->varg_binicileri.kritik_sans);
+            if(birimlerOrg->troller.birimSayi > 0)
+                canavar_kahraman_bonusu_uygula(canavar->etki_turu, bonus, &birimlerOrg->troller.savunma, &birimlerOrg->troller.saldiri, &birimlerOrg->troller.kritik_sans);
+
+            if (!strcmp(canavar->etki_turu, "savunma"))
+                fprintf(savas_sim,"Ork Dovusculeri - Mizrakcilar - Varg Binicileri - Troller birimlerinin yeni savunma gucleri = %f - %f - %f - %f dir. ",birimlerOrg->ork_dovusculeri.savunma,birimlerOrg->mizrakcilar.savunma,birimlerOrg->varg_binicileri.savunma,birimlerOrg->troller.savunma);
+            else if (!strcmp(canavar->etki_turu, "saldiri"))
+                fprintf(savas_sim,"Ork Dovusculeri - Mizrakcilar - Varg Binicileri - Troller birimlerinin yeni saldiri gucleri = %f - %f - %f - %f dir. ",birimlerOrg->ork_dovusculeri.saldiri,birimlerOrg->mizrakcilar.saldiri,birimlerOrg->varg_binicileri.saldiri,birimlerOrg->troller.saldiri);
+            else if(!strcmp(canavar->etki_turu, "kritik_sans"))
+                fprintf(savas_sim,"Ork Dovusculeri - Mizrakcilar - Varg Binicileri - Troller birimlerinin yeni kritik sans gucleri = %f - %f - %f - %f dir. ",birimlerOrg->ork_dovusculeri.kritik_sans,birimlerOrg->mizrakcilar.kritik_sans,birimlerOrg->varg_binicileri.kritik_sans,birimlerOrg->troller.kritik_sans);
+
         }
     }
 }
@@ -738,43 +1040,119 @@ void insan_kahraman_etkisi(struct KahramanOzellikler *kahraman, struct BirimlerI
         float bonus = kahraman->bonus_degeri;
 
         if(kahraman_bil == 1)
-            fprintf(savas_sim,"\nAlparslan kahramani ");
+            fprintf(savas_sim,"\n\nAlparslan kahramani ");
         else if(kahraman_bil == 2)
-            fprintf(savas_sim,"\nMete Han kahramani ");
+            fprintf(savas_sim,"\n\nMete Han kahramani ");
         else if(kahraman_bil == 3)
-            fprintf(savas_sim,"\nFatih Sultan Mehmet kahramani ");
+            fprintf(savas_sim,"\n\nFatih Sultan Mehmet kahramani ");
         else if(kahraman_bil == 4)
-            fprintf(savas_sim,"\nTugrul Bey kahramani ");
+            fprintf(savas_sim,"\n\nTugrul Bey kahramani ");
         else if(kahraman_bil == 5)
-            fprintf(savas_sim,"\nYavuz Sultan Selim kahramani ");
+            fprintf(savas_sim,"\n\nYavuz Sultan Selim kahramani ");
 
-        if (!strcmp(kahraman->etkiledigi_birim, "piyade"))
+        if (!strcmp(kahraman->etkiledigi_birim, "piyade") && birimlerInsan->piyadeler.birimSayi > 0)
         {
-            fprintf(savas_sim," %s birimine %%%1.0f %s bonusu uyguladi.\n",kahraman->etkiledigi_birim, bonus, kahraman->bonus_turu);
+            fprintf(savas_sim," %s birimine %%%.0f %s bonusu uyguladi. ",kahraman->etkiledigi_birim, bonus, kahraman->bonus_turu);
+            if (!strcmp(kahraman->bonus_turu, "savunma"))
+                fprintf(savas_sim,"%s biriminin eski savunma gucu = %fdir. ",kahraman->etkiledigi_birim, birimlerInsan->piyadeler.savunma);
+            else if (!strcmp(kahraman->bonus_turu, "saldiri"))
+                fprintf(savas_sim,"%s biriminin eski saldiri gucu = %f dir. ",kahraman->etkiledigi_birim, birimlerInsan->piyadeler.saldiri);
+            else if(!strcmp(kahraman->bonus_turu, "kritik_sans"))
+                fprintf(savas_sim,"%s biriminin eski kritik sans gucu = %f dir. ",kahraman->etkiledigi_birim, birimlerInsan->piyadeler.kritik_sans);
+
             canavar_kahraman_bonusu_uygula(kahraman->bonus_turu, bonus, &birimlerInsan->piyadeler.savunma, &birimlerInsan->piyadeler.saldiri, &birimlerInsan->piyadeler.kritik_sans);
+
+            if (!strcmp(kahraman->bonus_turu, "savunma"))
+                fprintf(savas_sim,"Yeni savunma gucu = %fdir. ",birimlerInsan->piyadeler.savunma);
+            else if (!strcmp(kahraman->bonus_turu, "saldiri"))
+                fprintf(savas_sim,"Yeni saldiri gucu = %f dir. ",birimlerInsan->piyadeler.saldiri);
+            else if(!strcmp(kahraman->bonus_turu, "kritik_sans"))
+                fprintf(savas_sim,"Yeni kritik sans gucu = %f dir. ",birimlerInsan->piyadeler.kritik_sans);
         }
-        else if (!strcmp(kahraman->etkiledigi_birim, "okcu"))
+        else if (!strcmp(kahraman->etkiledigi_birim, "okcu") && birimlerInsan->okcular.birimSayi > 0)
         {
-            fprintf(savas_sim," %s birimine %%%1.0f %s bonusu uyguladi.\n",kahraman->etkiledigi_birim, bonus, kahraman->bonus_turu);
+            fprintf(savas_sim," %s birimine %%%.0f %s bonusu uyguladi. \n",kahraman->etkiledigi_birim, bonus, kahraman->bonus_turu);
+            if (!strcmp(kahraman->bonus_turu, "savunma"))
+                fprintf(savas_sim,"%s biriminin eski savunma gucu = %fdir. ",kahraman->etkiledigi_birim, birimlerInsan->okcular.savunma);
+            else if (!strcmp(kahraman->bonus_turu, "saldiri"))
+                fprintf(savas_sim,"%s biriminin eski saldiri gucu = %f dir. ",kahraman->etkiledigi_birim, birimlerInsan->okcular.saldiri);
+            else if(!strcmp(kahraman->bonus_turu, "kritik_sans"))
+                fprintf(savas_sim,"%s biriminin eski kritik sans gucu = %f dir. ",kahraman->etkiledigi_birim, birimlerInsan->okcular.kritik_sans);
+
             canavar_kahraman_bonusu_uygula(kahraman->bonus_turu, bonus, &birimlerInsan->okcular.savunma, &birimlerInsan->okcular.saldiri, &birimlerInsan->okcular.kritik_sans);
+
+            if (!strcmp(kahraman->bonus_turu, "savunma"))
+                fprintf(savas_sim,"Yeni savunma gucu = %fdir. ",birimlerInsan->okcular.savunma);
+            else if (!strcmp(kahraman->bonus_turu, "saldiri"))
+                fprintf(savas_sim,"Yeni saldiri gucu = %f dir. ",birimlerInsan->okcular.saldiri);
+            else if(!strcmp(kahraman->bonus_turu, "kritik_sans"))
+                fprintf(savas_sim,"Yeni kritik sans gucu = %f dir. ",birimlerInsan->okcular.kritik_sans);
         }
-        else if (!strcmp(kahraman->etkiledigi_birim, "kusatma_makinesi"))
+        else if (!strcmp(kahraman->etkiledigi_birim, "kusatma_makinesi") && birimlerInsan->kusatma_makineleri.birimSayi > 0)
         {
-            fprintf(savas_sim," %s birimine %%%1.0f %s bonusu uyguladi.\n",kahraman->etkiledigi_birim, bonus, kahraman->bonus_turu);
+            fprintf(savas_sim," %s birimine %%%.0f %s bonusu uyguladi. \n",kahraman->etkiledigi_birim, bonus, kahraman->bonus_turu);
+            if (!strcmp(kahraman->bonus_turu, "savunma"))
+                fprintf(savas_sim,"%s biriminin eski savunma gucu = %fdir. ",kahraman->etkiledigi_birim, birimlerInsan->kusatma_makineleri.savunma);
+            else if (!strcmp(kahraman->bonus_turu, "saldiri"))
+                fprintf(savas_sim,"%s biriminin eski saldiri gucu = %f dir. ",kahraman->etkiledigi_birim, birimlerInsan->kusatma_makineleri.saldiri);
+            else if(!strcmp(kahraman->bonus_turu, "kritik_sans"))
+                fprintf(savas_sim,"%s biriminin eski kritik sans gucu = %f dir. ",kahraman->etkiledigi_birim, birimlerInsan->kusatma_makineleri.kritik_sans);
+
             canavar_kahraman_bonusu_uygula(kahraman->bonus_turu, bonus, &birimlerInsan->kusatma_makineleri.savunma, &birimlerInsan->kusatma_makineleri.saldiri, &birimlerInsan->kusatma_makineleri.kritik_sans);
+
+
+            if (!strcmp(kahraman->bonus_turu, "savunma"))
+                fprintf(savas_sim,"Yeni savunma gucu = %fdir. ",birimlerInsan->kusatma_makineleri.savunma);
+            else if (!strcmp(kahraman->bonus_turu, "saldiri"))
+                fprintf(savas_sim,"Yeni saldiri gucu = %f dir. ",birimlerInsan->kusatma_makineleri.saldiri);
+            else if(!strcmp(kahraman->bonus_turu, "kritik_sans"))
+                fprintf(savas_sim,"Yeni kritik sans gucu = %f dir. ",birimlerInsan->kusatma_makineleri.kritik_sans);
         }
-        else if (!strcmp(kahraman->etkiledigi_birim, "suvari"))
+        else if (!strcmp(kahraman->etkiledigi_birim, "suvari") && birimlerInsan->suvariler.birimSayi > 0)
         {
-            fprintf(savas_sim," %s birimine %%%1.0f %s bonusu uyguladi.\n",kahraman->etkiledigi_birim, bonus, kahraman->bonus_turu);
+            fprintf(savas_sim," %s birimine %%%.0f %s bonusu uyguladi. \n",kahraman->etkiledigi_birim, bonus, kahraman->bonus_turu);
+            if (!strcmp(kahraman->bonus_turu, "savunma"))
+                fprintf(savas_sim,"%s biriminin eski savunma gucu = %f dir. ",kahraman->etkiledigi_birim, birimlerInsan->suvariler.savunma);
+            else if (!strcmp(kahraman->bonus_turu, "saldiri"))
+                fprintf(savas_sim,"%s biriminin eski saldiri gucu = %f dir. ",kahraman->etkiledigi_birim, birimlerInsan->suvariler.saldiri);
+            else if(!strcmp(kahraman->bonus_turu, "kritik_sans"))
+                fprintf(savas_sim,"%s biriminin eski kritik sans gucu = %f dir. ",kahraman->etkiledigi_birim, birimlerInsan->suvariler.kritik_sans);
+
             canavar_kahraman_bonusu_uygula(kahraman->bonus_turu, bonus, &birimlerInsan->suvariler.savunma, &birimlerInsan->suvariler.saldiri, &birimlerInsan->suvariler.kritik_sans);
+
+            if (!strcmp(kahraman->bonus_turu, "savunma"))
+                fprintf(savas_sim,"Yeni savunma gucu = %fdir. ",birimlerInsan->suvariler.savunma);
+            else if (!strcmp(kahraman->bonus_turu, "saldiri"))
+                fprintf(savas_sim,"Yeni saldiri gucu = %f dir. ",birimlerInsan->suvariler.saldiri);
+            else if(!strcmp(kahraman->bonus_turu, "kritik_sans"))
+                fprintf(savas_sim,"Yeni kritik sans gucu = %f dir. ",birimlerInsan->suvariler.kritik_sans);
         }
         else if (!strcmp(kahraman->etkiledigi_birim, "tum_birimlere"))
         {
-            fprintf(savas_sim," %s birimine %%%1.0f %s bonus uyguladi.\n",kahraman->etkiledigi_birim, bonus, kahraman->bonus_turu);
-            canavar_kahraman_bonusu_uygula(kahraman->bonus_turu, bonus, &birimlerInsan->piyadeler.savunma, &birimlerInsan->piyadeler.saldiri, &birimlerInsan->piyadeler.kritik_sans);
-            canavar_kahraman_bonusu_uygula(kahraman->bonus_turu, bonus, &birimlerInsan->okcular.savunma, &birimlerInsan->okcular.saldiri, &birimlerInsan->okcular.kritik_sans);
-            canavar_kahraman_bonusu_uygula(kahraman->bonus_turu, bonus, &birimlerInsan->kusatma_makineleri.savunma, &birimlerInsan->kusatma_makineleri.saldiri, &birimlerInsan->kusatma_makineleri.kritik_sans);
-            canavar_kahraman_bonusu_uygula(kahraman->bonus_turu, bonus, &birimlerInsan->suvariler.savunma, &birimlerInsan->suvariler.saldiri, &birimlerInsan->suvariler.kritik_sans);
+            fprintf(savas_sim," %s %%%.0f %s bonus uyguladi. \n",kahraman->etkiledigi_birim, bonus, kahraman->bonus_turu);
+            if (!strcmp(kahraman->bonus_turu, "savunma"))
+                fprintf(savas_sim,"Suvari - Piyade - Okcu - Kusatma mak. birimlerinin eski savunma gucleri = %f - %f - %f - %f dir. ",birimlerInsan->suvariler.savunma,birimlerInsan->piyadeler.savunma,birimlerInsan->okcular.savunma,birimlerInsan->kusatma_makineleri.savunma);
+            else if (!strcmp(kahraman->bonus_turu, "saldiri"))
+                fprintf(savas_sim,"Suvari - Piyade - Okcu - Kusatma mak. birimlerinin eski saldiri gucleri = %f - %f - %f - %f dir. ",birimlerInsan->suvariler.saldiri,birimlerInsan->piyadeler.saldiri,birimlerInsan->okcular.saldiri,birimlerInsan->kusatma_makineleri.saldiri);
+            else if(!strcmp(kahraman->bonus_turu, "kritik_sans"))
+                fprintf(savas_sim,"Suvari - Piyade - Okcu - Kusatma mak. birimlerinin eski kritik sans gucleri = %f - %f - %f - %f dir. ",birimlerInsan->suvariler.kritik_sans,birimlerInsan->piyadeler.kritik_sans,birimlerInsan->okcular.kritik_sans,birimlerInsan->kusatma_makineleri.kritik_sans);
+
+            if(birimlerInsan->piyadeler.birimSayi > 0)
+                canavar_kahraman_bonusu_uygula(kahraman->bonus_turu, bonus, &birimlerInsan->piyadeler.savunma, &birimlerInsan->piyadeler.saldiri, &birimlerInsan->piyadeler.kritik_sans);
+            if(birimlerInsan->okcular.birimSayi > 0)
+                canavar_kahraman_bonusu_uygula(kahraman->bonus_turu, bonus, &birimlerInsan->okcular.savunma, &birimlerInsan->okcular.saldiri, &birimlerInsan->okcular.kritik_sans);
+            if(birimlerInsan->kusatma_makineleri.birimSayi > 0)
+                canavar_kahraman_bonusu_uygula(kahraman->bonus_turu, bonus, &birimlerInsan->kusatma_makineleri.savunma, &birimlerInsan->kusatma_makineleri.saldiri, &birimlerInsan->kusatma_makineleri.kritik_sans);
+            if(birimlerInsan->suvariler.birimSayi > 0)
+                canavar_kahraman_bonusu_uygula(kahraman->bonus_turu, bonus, &birimlerInsan->suvariler.savunma, &birimlerInsan->suvariler.saldiri, &birimlerInsan->suvariler.kritik_sans);
+
+            if (!strcmp(kahraman->bonus_turu, "savunma"))
+                fprintf(savas_sim,"\nSuvari - Piyade - Okcu - Kusatma mak. birimlerinin yeni savunma gucleri = %f - %f - %f - %f dir. ",birimlerInsan->suvariler.savunma,birimlerInsan->piyadeler.savunma,birimlerInsan->okcular.savunma,birimlerInsan->kusatma_makineleri.savunma);
+            else if (!strcmp(kahraman->bonus_turu, "saldiri"))
+                fprintf(savas_sim,"\nSuvari - Piyade - Okcu - Kusatma mak. birimlerinin yeni saldiri gucleri = %f - %f - %f - %f dir. ",birimlerInsan->suvariler.saldiri,birimlerInsan->piyadeler.saldiri,birimlerInsan->okcular.saldiri,birimlerInsan->kusatma_makineleri.saldiri);
+            else if(!strcmp(kahraman->bonus_turu, "kritik_sans"))
+                fprintf(savas_sim,"\nSuvari - Piyade - Okcu - Kusatma mak. birimlerinin yeni kritik sans gucleri = %f - %f - %f - %f dir. ",birimlerInsan->suvariler.kritik_sans,birimlerInsan->piyadeler.kritik_sans,birimlerInsan->okcular.kritik_sans,birimlerInsan->kusatma_makineleri.kritik_sans);
+
         }
     }
 }
@@ -786,43 +1164,118 @@ void insan_canavar_etkisi(struct CanavarOzellikler *canavar, struct BirimlerInsa
         float bonus = canavar->etki_degeri;
 
         if(canavar_bil == 1)
-            fprintf(savas_sim,"\nAgri Dagi Devleri canavari ");
+            fprintf(savas_sim,"\n\nAgri Dagi Devleri canavari ");
         else if(canavar_bil == 2)
-            fprintf(savas_sim,"\nEjderha canavari ");
+            fprintf(savas_sim,"\n\Ejderha canavari ");
         else if(canavar_bil == 3)
-            fprintf(savas_sim,"\nKarakurt canavari ");
+            fprintf(savas_sim,"\n\nKarakurt canavari ");
         else if(canavar_bil == 4)
-            fprintf(savas_sim,"\nSamur canavari ");
+            fprintf(savas_sim,"\n\nSamur canavari ");
         else if(canavar_bil == 5)
-            fprintf(savas_sim,"\nTepegoz canavari ");
+            fprintf(savas_sim,"\n\nTepegoz canavari ");
 
-        if (!strcmp(canavar->etkiledigi_birim, "piyade"))
+        if (!strcmp(canavar->etkiledigi_birim, "piyade") && birimlerInsan->piyadeler.birimSayi > 0)
         {
-            fprintf(savas_sim," %s birimine %%%1.0f %s bonusu uyguladi.\n",canavar->etkiledigi_birim, bonus, canavar->etki_turu);
+            fprintf(savas_sim," %s birimine %%%.0f %s bonusu uyguladi. \n",canavar->etkiledigi_birim, bonus, canavar->etki_turu);
+            if (!strcmp(canavar->etki_turu, "savunma"))
+                fprintf(savas_sim,"%s biriminin eski savunma gucu = %fdir. ",canavar->etkiledigi_birim, birimlerInsan->piyadeler.savunma);
+            else if (!strcmp(canavar->etki_turu, "saldiri"))
+                fprintf(savas_sim,"%s biriminin eski saldiri gucu = %f dir. ",canavar->etkiledigi_birim, birimlerInsan->piyadeler.saldiri);
+            else if(!strcmp(canavar->etki_turu, "kritik_sans"))
+                fprintf(savas_sim,"%s biriminin eski kritik sans gucu = %f dir. ",canavar->etkiledigi_birim, birimlerInsan->piyadeler.kritik_sans);
+
             canavar_kahraman_bonusu_uygula(canavar->etki_turu, bonus, &birimlerInsan->piyadeler.savunma, &birimlerInsan->piyadeler.saldiri, &birimlerInsan->piyadeler.kritik_sans);
+
+            if (!strcmp(canavar->etki_turu, "savunma"))
+                fprintf(savas_sim,"Yeni savunma gucu = %fdir. ",birimlerInsan->piyadeler.savunma);
+            else if (!strcmp(canavar->etki_turu, "saldiri"))
+                fprintf(savas_sim,"Yeni saldiri gucu = %f dir. ",birimlerInsan->piyadeler.saldiri);
+            else if(!strcmp(canavar->etki_turu, "kritik_sans"))
+                fprintf(savas_sim,"Yeni kritik sans gucu = %f dir. ",birimlerInsan->piyadeler.kritik_sans);
         }
-        else if (!strcmp(canavar->etkiledigi_birim, "okcu"))
+        else if (!strcmp(canavar->etkiledigi_birim, "okcu") && birimlerInsan->okcular.birimSayi > 0)
         {
-            fprintf(savas_sim," %s birimine %%%1.0f %s bonusu uyguladi.\n",canavar->etkiledigi_birim, bonus, canavar->etki_turu);
+            fprintf(savas_sim," %s birimine %%%.0f %s bonusu uyguladi. \n",canavar->etkiledigi_birim, bonus, canavar->etki_turu);
+            if (!strcmp(canavar->etki_turu, "savunma"))
+                fprintf(savas_sim,"%s biriminin eski savunma gucu = %fdir. ",canavar->etkiledigi_birim, birimlerInsan->okcular.savunma);
+            else if (!strcmp(canavar->etki_turu, "saldiri"))
+                fprintf(savas_sim,"%s biriminin eski saldiri gucu = %f dir. ",canavar->etkiledigi_birim, birimlerInsan->okcular.saldiri);
+            else if(!strcmp(canavar->etki_turu, "kritik_sans"))
+                fprintf(savas_sim,"%s biriminin eski kritik sans gucu = %f dir. ",canavar->etkiledigi_birim, birimlerInsan->okcular.kritik_sans);
+
             canavar_kahraman_bonusu_uygula(canavar->etki_turu, bonus, &birimlerInsan->okcular.savunma, &birimlerInsan->okcular.saldiri, &birimlerInsan->okcular.kritik_sans);
+
+            if (!strcmp(canavar->etki_turu, "savunma"))
+                fprintf(savas_sim,"Yeni savunma gucu = %fdir. ",birimlerInsan->okcular.savunma);
+            else if (!strcmp(canavar->etki_turu, "saldiri"))
+                fprintf(savas_sim,"Yeni saldiri gucu = %f dir. ",birimlerInsan->okcular.saldiri);
+            else if(!strcmp(canavar->etki_turu, "kritik_sans"))
+                fprintf(savas_sim,"Yeni kritik sans gucu = %f dir. ",birimlerInsan->okcular.kritik_sans);
         }
-        else if (!strcmp(canavar->etkiledigi_birim, "kusatma_makinesi"))
+        else if (!strcmp(canavar->etkiledigi_birim, "kusatma_makinesi") && birimlerInsan->kusatma_makineleri.birimSayi > 0)
         {
-            fprintf(savas_sim," %s birimine %%%1.0f %s bonusu uyguladi.\n",canavar->etkiledigi_birim, bonus, canavar->etki_turu);
+            fprintf(savas_sim," %s birimine %%%.0f %s bonusu uyguladi. \n",canavar->etkiledigi_birim, bonus, canavar->etki_turu);
+            if (!strcmp(canavar->etki_turu, "savunma"))
+                fprintf(savas_sim,"%s biriminin eski savunma gucu = %fdir. ",canavar->etkiledigi_birim, birimlerInsan->kusatma_makineleri.savunma);
+            else if (!strcmp(canavar->etki_turu, "saldiri"))
+                fprintf(savas_sim,"%s biriminin eski saldiri gucu = %f dir. ",canavar->etkiledigi_birim, birimlerInsan->kusatma_makineleri.saldiri);
+            else if(!strcmp(canavar->etki_turu, "kritik_sans"))
+                fprintf(savas_sim,"%s biriminin eski kritik sans gucu = %f dir. ",canavar->etkiledigi_birim, birimlerInsan->kusatma_makineleri.kritik_sans);
+
             canavar_kahraman_bonusu_uygula(canavar->etki_turu, bonus, &birimlerInsan->kusatma_makineleri.savunma, &birimlerInsan->kusatma_makineleri.saldiri, &birimlerInsan->kusatma_makineleri.kritik_sans);
+
+            if (!strcmp(canavar->etki_turu, "savunma"))
+                fprintf(savas_sim,"Yeni savunma gucu = %fdir. ",birimlerInsan->kusatma_makineleri.savunma);
+            else if (!strcmp(canavar->etki_turu, "saldiri"))
+                fprintf(savas_sim,"Yeni saldiri gucu = %f dir. ",birimlerInsan->kusatma_makineleri.saldiri);
+            else if(!strcmp(canavar->etki_turu, "kritik_sans"))
+                fprintf(savas_sim,"Yeni kritik sans gucu = %f dir. ",birimlerInsan->kusatma_makineleri.kritik_sans);
         }
-        else if (!strcmp(canavar->etkiledigi_birim, "suvari"))
+        else if (!strcmp(canavar->etkiledigi_birim, "suvari") && birimlerInsan->suvariler.birimSayi > 0)
         {
-            fprintf(savas_sim," %s birimine %%%1.0f %s bonusu uyguladi.\n",canavar->etkiledigi_birim, bonus, canavar->etki_turu);
+            fprintf(savas_sim," %s birimine %%%.0f %s bonusu uyguladi. \n",canavar->etkiledigi_birim, bonus, canavar->etki_turu);
+            if (!strcmp(canavar->etki_turu, "savunma"))
+                fprintf(savas_sim,"%s biriminin eski savunma gucu = %fdir. ",canavar->etkiledigi_birim, birimlerInsan->suvariler.savunma);
+            else if (!strcmp(canavar->etki_turu, "saldiri"))
+                fprintf(savas_sim,"%s biriminin eski saldiri gucu = %f dir. ",canavar->etkiledigi_birim, birimlerInsan->suvariler.saldiri);
+            else if(!strcmp(canavar->etki_turu, "kritik_sans"))
+                fprintf(savas_sim,"%s biriminin eski kritik sans gucu = %f dir. ",canavar->etkiledigi_birim, birimlerInsan->suvariler.kritik_sans);
+
             canavar_kahraman_bonusu_uygula(canavar->etki_turu, bonus, &birimlerInsan->suvariler.savunma, &birimlerInsan->suvariler.saldiri, &birimlerInsan->suvariler.kritik_sans);
+
+            if (!strcmp(canavar->etki_turu, "savunma"))
+                fprintf(savas_sim,"Yeni savunma gucu = %fdir. ",birimlerInsan->suvariler.savunma);
+            else if (!strcmp(canavar->etki_turu, "saldiri"))
+                fprintf(savas_sim,"Yeni saldiri gucu = %f dir. ",birimlerInsan->suvariler.saldiri);
+            else if(!strcmp(canavar->etki_turu, "kritik_sans"))
+                fprintf(savas_sim,"Yeni kritik sans gucu = %f dir. ",birimlerInsan->suvariler.kritik_sans);
         }
         else if (!strcmp(canavar->etkiledigi_birim, "tum_birimlere"))
         {
-            fprintf(savas_sim," %s birimine %%%1.0f %s bonusu uyguladi.\n",canavar->etkiledigi_birim, bonus, canavar->etki_turu);
-            canavar_kahraman_bonusu_uygula(canavar->etki_turu, bonus, &birimlerInsan->piyadeler.savunma, &birimlerInsan->piyadeler.saldiri, &birimlerInsan->piyadeler.kritik_sans);
-            canavar_kahraman_bonusu_uygula(canavar->etki_turu, bonus, &birimlerInsan->okcular.savunma, &birimlerInsan->okcular.saldiri, &birimlerInsan->okcular.kritik_sans);
-            canavar_kahraman_bonusu_uygula(canavar->etki_turu, bonus, &birimlerInsan->kusatma_makineleri.savunma, &birimlerInsan->kusatma_makineleri.saldiri, &birimlerInsan->kusatma_makineleri.kritik_sans);
-            canavar_kahraman_bonusu_uygula(canavar->etki_turu, bonus, &birimlerInsan->suvariler.savunma, &birimlerInsan->suvariler.saldiri, &birimlerInsan->suvariler.kritik_sans);
+            fprintf(savas_sim," %s birimine %%%.0f %s bonusu uyguladi. \n",canavar->etkiledigi_birim, bonus, canavar->etki_turu);
+            if (!strcmp(canavar->etki_turu, "savunma"))
+                fprintf(savas_sim,"Suvari - Piyade - Okcu - Kusatma mak. birimlerinin eski savunma gucleri = %f - %f - %f - %f dir. ",birimlerInsan->suvariler.savunma,birimlerInsan->piyadeler.savunma,birimlerInsan->okcular.savunma,birimlerInsan->kusatma_makineleri.savunma);
+            else if (!strcmp(canavar->etki_turu, "saldiri"))
+                fprintf(savas_sim,"Suvari - Piyade - Okcu - Kusatma mak. birimlerinin eski saldiri gucleri = %f - %f - %f - %f dir. ",birimlerInsan->suvariler.saldiri,birimlerInsan->piyadeler.saldiri,birimlerInsan->okcular.saldiri,birimlerInsan->kusatma_makineleri.saldiri);
+            else if(!strcmp(canavar->etki_turu, "kritik_sans"))
+                fprintf(savas_sim,"Suvari - Piyade - Okcu - Kusatma mak. birimlerinin eski kritik sans gucleri = %f - %f - %f - %f dir. ",birimlerInsan->suvariler.kritik_sans,birimlerInsan->piyadeler.kritik_sans,birimlerInsan->okcular.kritik_sans,birimlerInsan->kusatma_makineleri.kritik_sans);
+
+            if(birimlerInsan->piyadeler.birimSayi > 0)
+                canavar_kahraman_bonusu_uygula(canavar->etki_turu, bonus, &birimlerInsan->piyadeler.savunma, &birimlerInsan->piyadeler.saldiri, &birimlerInsan->piyadeler.kritik_sans);
+            if(birimlerInsan->okcular.birimSayi > 0)
+                canavar_kahraman_bonusu_uygula(canavar->etki_turu, bonus, &birimlerInsan->okcular.savunma, &birimlerInsan->okcular.saldiri, &birimlerInsan->okcular.kritik_sans);
+            if(birimlerInsan->kusatma_makineleri.birimSayi > 0)
+                canavar_kahraman_bonusu_uygula(canavar->etki_turu, bonus, &birimlerInsan->kusatma_makineleri.savunma, &birimlerInsan->kusatma_makineleri.saldiri, &birimlerInsan->kusatma_makineleri.kritik_sans);
+            if(birimlerInsan->suvariler.birimSayi > 0)
+                canavar_kahraman_bonusu_uygula(canavar->etki_turu, bonus, &birimlerInsan->suvariler.savunma, &birimlerInsan->suvariler.saldiri, &birimlerInsan->suvariler.kritik_sans);
+
+            if (!strcmp(canavar->etki_turu, "savunma"))
+                fprintf(savas_sim,"\nSuvari - Piyade - Okcu - Kusatma mak. birimlerinin yeni savunma gucleri = %f - %f - %f - %f dir. ",birimlerInsan->suvariler.savunma,birimlerInsan->piyadeler.savunma,birimlerInsan->okcular.savunma,birimlerInsan->kusatma_makineleri.savunma);
+            else if (!strcmp(canavar->etki_turu, "saldiri"))
+                fprintf(savas_sim,"\nSuvari - Piyade - Okcu - Kusatma mak. birimlerinin yeni saldiri gucleri = %f - %f - %f - %f dir. ",birimlerInsan->suvariler.saldiri,birimlerInsan->piyadeler.saldiri,birimlerInsan->okcular.saldiri,birimlerInsan->kusatma_makineleri.saldiri);
+            else if(!strcmp(canavar->etki_turu, "kritik_sans"))
+                fprintf(savas_sim,"\nSuvari - Piyade - Okcu - Kusatma mak. birimlerinin yeni kritik sans gucleri = %f - %f - %f - %f dir. ",birimlerInsan->suvariler.kritik_sans,birimlerInsan->piyadeler.kritik_sans,birimlerInsan->okcular.kritik_sans,birimlerInsan->kusatma_makineleri.kritik_sans);
+
         }
     }
 }
@@ -856,6 +1309,7 @@ void hasar_dagilimi_ork(struct BirimlerOrg *birim, float netHasar, float toplamS
 
     if (birim->varg_binicileri.birimSayi > 0)
         birim->varg_binicileri.hasar_dagilimi = netHasar * (((float)birim->varg_binicileri.birimSayi * birim->varg_binicileri.savunma) / toplamSavunmaGucu);
+
 }
 
 void olen_hasardagit_ork(struct BirimlerOrg *birim, float birimHasarDagilimi, float kalanSavunmaGucu)
@@ -873,123 +1327,153 @@ void olen_hasardagit_ork(struct BirimlerOrg *birim, float birimHasarDagilimi, fl
         birim->varg_binicileri.hasar_dagilimi += birimHasarDagilimi * (((float)birim->varg_binicileri.birimSayi * birim->varg_binicileri.savunma) / kalanSavunmaGucu);
 }
 
-void birim_kayip_ork(struct BirimlerOrg *birim)
+void birim_kayip_ork(struct BirimlerOrg *birim, FILE *savas_sim)
 {
+    int Msavasta = 0;
+    int Vsavasta = 0;
+    int Osavasta = 0;
+    int Tsavasta = 0;
+
+    fprintf(savas_sim,"\n\n\n*****Ork Birim Kayiplari*****\n\n");
     if (birim->mizrakcilar.birimSayi > 0)
-        birim->mizrakcilar.birimSayi -= birim->mizrakcilar.hasar_dagilimi / birim->mizrakcilar.saglik;
-
-    if (birim->varg_binicileri.birimSayi > 0)
-        birim->varg_binicileri.birimSayi -= birim->varg_binicileri.hasar_dagilimi / birim->varg_binicileri.saglik;
-
-    if (birim->ork_dovusculeri.birimSayi > 0)
-        birim->ork_dovusculeri.birimSayi -= birim->ork_dovusculeri.hasar_dagilimi / birim->ork_dovusculeri.saglik;
-
-    if (birim->troller.birimSayi > 0)
-        birim->troller.birimSayi -= birim->troller.hasar_dagilimi / birim->troller.saglik;
-
-
-
-    printf("\nmizrakci sayisi: %d",birim->mizrakcilar.birimSayi);
-    printf("\nmizrakci hasar dagilimi : %f",birim->mizrakcilar.hasar_dagilimi);
-    if (birim->mizrakcilar.birimSayi <= 0)
     {
-        printf("\nmizrakci oldu\n");
+        Msavasta = 1;
+        fprintf(savas_sim,"\nMizrakcilar hasar dagilimi : %f\n",birim->mizrakcilar.hasar_dagilimi);
+        fprintf(savas_sim,"Mizrakcilar onceki sayisi : %d , ",birim->mizrakcilar.birimSayi);
+        birim->mizrakcilar.birimSayi -= birim->mizrakcilar.hasar_dagilimi / birim->mizrakcilar.saglik;
+        fprintf(savas_sim,"sonraki sayisi : %d , olen birim sayisi : %f\n",birim->mizrakcilar.birimSayi, birim->mizrakcilar.hasar_dagilimi / birim->mizrakcilar.saglik);
+    }
+    if (birim->varg_binicileri.birimSayi > 0)
+    {
+        Vsavasta = 1;
+        fprintf(savas_sim,"\nVarg Binicileri hasar dagilimi : %f\n",birim->varg_binicileri.hasar_dagilimi);
+        fprintf(savas_sim,"Varg Binicileri onceki sayisi : %d , ",birim->varg_binicileri.birimSayi);
+        birim->varg_binicileri.birimSayi -= birim->varg_binicileri.hasar_dagilimi / birim->varg_binicileri.saglik;
+        fprintf(savas_sim,"sonraki sayisi : %d , olen birim sayisi : %f\n",birim->varg_binicileri.birimSayi, birim->varg_binicileri.hasar_dagilimi / birim->varg_binicileri.saglik);
+    }
+    if (birim->ork_dovusculeri.birimSayi > 0)
+    {
+        Osavasta = 1;
+        fprintf(savas_sim,"\nOrk Dovusculeri hasar dagilimi : %f\n",birim->ork_dovusculeri.hasar_dagilimi);
+        fprintf(savas_sim,"Ork Dovusculeri onceki sayisi : %d , ",birim->ork_dovusculeri.birimSayi);
+        birim->ork_dovusculeri.birimSayi -= birim->ork_dovusculeri.hasar_dagilimi / birim->ork_dovusculeri.saglik;
+        fprintf(savas_sim,"sonraki sayisi : %d , olen birim sayisi : %f\n",birim->ork_dovusculeri.birimSayi, birim->ork_dovusculeri.hasar_dagilimi / birim->ork_dovusculeri.saglik);
+    }
+    if (birim->troller.birimSayi > 0)
+    {
+        Tsavasta = 1;
+        fprintf(savas_sim,"\nTroller hasar dagilimi : %f\n",birim->troller.hasar_dagilimi);
+        fprintf(savas_sim,"Troller onceki sayisi : %d , ",birim->troller.birimSayi);
+        birim->troller.birimSayi -= birim->troller.hasar_dagilimi / birim->troller.saglik;
+        fprintf(savas_sim,"sonraki sayisi : %d , olen birim sayisi : %f\n",birim->troller.birimSayi, birim->troller.hasar_dagilimi / birim->troller.saglik);
+    }
+    int Mkontrol = 0;
+    int Okontrol = 0;
+    int Tkontrol = 0;
+    int Vkontrol = 0;
+
+    if (birim->mizrakcilar.birimSayi <= 0 && Mkontrol == 0 && Msavasta == 1)
+    {
+        Mkontrol = 1;
+        fprintf(savas_sim,"\nMizrakci oldu.\n");
         birim->mizrakcilar.birimSayi = 0;
         olen_hasardagit_ork(birim, birim->mizrakcilar.hasar_dagilimi, orkSavunmaHesapla(birim));
-        printf("ork yeni hasar dagilimi : %f", birim->ork_dovusculeri.hasar_dagilimi);
-        printf("trol yeni hasar dagilimi : %f", birim->troller.hasar_dagilimi);
-        printf("varg_binicileri yeni hasar dagilimi : %f", birim->varg_binicileri.hasar_dagilimi);
+        fprintf(savas_sim,"Ork yeni hasar dagilimi : %f\n", birim->ork_dovusculeri.hasar_dagilimi);
+        fprintf(savas_sim,"Trol yeni hasar dagilimi : %f\n", birim->troller.hasar_dagilimi);
+        fprintf(savas_sim,"Varg Binicileri yeni hasar dagilimi : %f\n", birim->varg_binicileri.hasar_dagilimi);
     }
-
-
-
-
-    printf("\nork_dovusculeri sayisi: %d",birim->ork_dovusculeri.birimSayi);
-    printf("\nork_dovusculeri hasar_dagilimi: %f",birim->ork_dovusculeri.hasar_dagilimi);
-    if (birim->ork_dovusculeri.birimSayi <= 0)
+    if (birim->ork_dovusculeri.birimSayi <= 0 && Okontrol == 0 && Osavasta == 1)
     {
-        printf("\nork_dovusculeri oldu\n");
+        Okontrol = 1;
+        fprintf(savas_sim,"\nOrk Dovusculeri oldu\n");
         birim->ork_dovusculeri.birimSayi = 0;
         olen_hasardagit_ork(birim, birim->ork_dovusculeri.hasar_dagilimi, orkSavunmaHesapla(birim));
-        printf("mizrakci yeni hasar dagilimi : %f", birim->mizrakcilar.hasar_dagilimi);
-        printf("trol yeni hasar dagilimi : %f", birim->troller.hasar_dagilimi);
-        printf("varg_binicileri yeni hasar dagilimi : %f", birim->varg_binicileri.hasar_dagilimi);
+        fprintf(savas_sim,"Mizrakci yeni hasar dagilimi : %f\n", birim->mizrakcilar.hasar_dagilimi);
+        fprintf(savas_sim,"Trol yeni hasar dagilimi : %f\n", birim->troller.hasar_dagilimi);
+        fprintf(savas_sim,"Varg Binicileri yeni hasar dagilimi : %f\n", birim->varg_binicileri.hasar_dagilimi);
     }
-
-
-    printf("\ntroller sayisi : %d",birim->troller.birimSayi);
-    printf("\ntroller hasar_dagilimi : %f",birim->troller.hasar_dagilimi);
-    if (birim->troller.birimSayi <= 0)
+    if (birim->troller.birimSayi <= 0 && Tkontrol == 0 && Tsavasta == 1)
     {
-        printf("\ntroller oldu\n");
+        Tkontrol = 1;
+        fprintf(savas_sim,"\nTroller oldu\n");
         birim->troller.birimSayi = 0;
         olen_hasardagit_ork(birim, birim->troller.hasar_dagilimi, orkSavunmaHesapla(birim));
-        printf("mizrakci yeni hasar dagilimi : %f", birim->mizrakcilar.hasar_dagilimi);
-        printf("ork yeni hasar dagilimi : %f", birim->ork_dovusculeri.hasar_dagilimi);
-        printf("varg_binicileri yeni hasar dagilimi : %f", birim->varg_binicileri.hasar_dagilimi);
+        fprintf(savas_sim,"Mizrakci yeni hasar dagilimi : %f\n", birim->mizrakcilar.hasar_dagilimi);
+        fprintf(savas_sim,"Ork yeni hasar dagilimi : %f\n", birim->ork_dovusculeri.hasar_dagilimi);
+        fprintf(savas_sim,"Varg Binicileri yeni hasar dagilimi : %f\n", birim->varg_binicileri.hasar_dagilimi);
     }
-
-
-    printf("\nvarg_binicileri sayisi : %d",birim->varg_binicileri.birimSayi);
-    printf("\nvarg_binicileri hasar_dagilimi : %f",birim->varg_binicileri.hasar_dagilimi);
-    if (birim->varg_binicileri.birimSayi <= 0)
+    if (birim->varg_binicileri.birimSayi <= 0 && Vkontrol == 0 && Vsavasta == 1)
     {
-        printf("\nvarg_binicileri oldu\n");
+        Vkontrol = 1;
+        fprintf(savas_sim,"\nVSarg Binicileri oldu\n");
         birim->varg_binicileri.birimSayi = 0;
         olen_hasardagit_ork(birim, birim->varg_binicileri.hasar_dagilimi, orkSavunmaHesapla(birim));
-        printf("mizrakci yeni hasar dagilimi : %f", birim->mizrakcilar.hasar_dagilimi);
-        printf("ork yeni hasar dagilimi : %f", birim->ork_dovusculeri.hasar_dagilimi);
-        printf("trol yeni hasar dagilimi : %f", birim->troller.hasar_dagilimi);
+        fprintf(savas_sim,"Mizrakci yeni hasar dagilimi : %f\n", birim->mizrakcilar.hasar_dagilimi);
+        fprintf(savas_sim,"Ork yeni hasar dagilimi : %f\n", birim->ork_dovusculeri.hasar_dagilimi);
+        fprintf(savas_sim,"Trol yeni hasar dagilimi : %f\n", birim->troller.hasar_dagilimi);
     }
 }
 
-void saglik_durumu_ork(struct BirimlerOrg *birim)
+void saglik_durumu_ork(struct BirimlerOrg *birim, FILE *savas_sim)
 {
-    printf("\n--onceki saglik--\n");
-    printf("\nmizrak saglik : %f\n",birim->mizrakcilar.saglik);
-    printf("\nork_dovusculeri saglik : %f\n",birim->ork_dovusculeri.saglik);
-    printf("\ntroller saglik : %f\n",birim->troller.saglik);
-    printf("\nvarg_binicileri saglik : %f\n",birim->varg_binicileri.saglik);
-
+    fprintf(savas_sim,"\n\n++++Ork Legi Saglik Durumlari++++\n\n");
     if (birim->mizrakcilar.birimSayi > 0)
+    {
+        fprintf(savas_sim,"\nMizrakcinin onceki sagligi : %f , ",birim->mizrakcilar.saglik);
         birim->mizrakcilar.saglik -= birim->mizrakcilar.hasar_dagilimi / (float)birim->mizrakcilar.birimSayi;
-
+        fprintf(savas_sim,"sonraki sagligi : %f\n",birim->mizrakcilar.saglik);
+        if(birim->mizrakcilar.saglik <= 0)
+        {
+            fprintf(savas_sim,"\nMizrakci sagligi 0 yada altina dustugu icin oldu!!!\n");
+            birim->mizrakcilar.birimSayi = 0;
+            birim->mizrakcilar.saglik = 0;
+        }
+    }
     if (birim->varg_binicileri.birimSayi > 0)
+    {
+        fprintf(savas_sim,"\nVarg Binicilerinin onceki sagligi : %f , ",birim->varg_binicileri.saglik);
         birim->varg_binicileri.saglik -= birim->varg_binicileri.hasar_dagilimi / (float)birim->varg_binicileri.birimSayi;
-
+        fprintf(savas_sim,"sonraki sagligi : %f\n",birim->varg_binicileri.saglik);
+        if(birim->varg_binicileri.saglik <= 0)
+        {
+            fprintf(savas_sim,"\nVarg Binicileri sagligi 0 yada altina dustugu icin oldu!!!\n");
+            birim->varg_binicileri.birimSayi = 0;
+            birim->varg_binicileri.saglik = 0;
+        }
+    }
     if (birim->ork_dovusculeri.birimSayi > 0)
+    {
+        fprintf(savas_sim,"\nOrk Dovusculerinin onceki sagligi : %f , ",birim->ork_dovusculeri.saglik);
         birim->ork_dovusculeri.saglik -= birim->ork_dovusculeri.hasar_dagilimi / (float)birim->ork_dovusculeri.birimSayi;
-
+        fprintf(savas_sim,"sonraki sagligi : %f\n",birim->ork_dovusculeri.saglik);
+        if(birim->ork_dovusculeri.saglik <= 0)
+        {
+            fprintf(savas_sim,"\nOrk Dovusculeri sagligi 0 yada altina dustugu icin oldu!!!\n");
+            birim->ork_dovusculeri.birimSayi = 0;
+            birim->ork_dovusculeri.saglik = 0;
+        }
+    }
     if (birim->troller.birimSayi > 0)
+    {
+        fprintf(savas_sim,"\nTrollerin onceki sagligi : %f , ",birim->troller.saglik);
         birim->troller.saglik -= birim->troller.hasar_dagilimi / (float)birim->troller.birimSayi;
-
-
-    if(birim->mizrakcilar.saglik <= 0)
-        birim->mizrakcilar.birimSayi = 0;
-
-    if(birim->varg_binicileri.saglik <= 0)
-        birim->varg_binicileri.birimSayi = 0;
-
-    if(birim->ork_dovusculeri.saglik <= 0)
-        birim->ork_dovusculeri.birimSayi = 0;
-
-    if(birim->troller.saglik <= 0)
-        birim->troller.birimSayi = 0;
-
-
-    printf("\n--sonraki saglik--\n");
-    printf("\nmizrak saglik : %f\n",birim->mizrakcilar.saglik);
-    printf("\nork_dovusculeri saglik : %f\n",birim->ork_dovusculeri.saglik);
-    printf("\ntroller saglik : %f\n",birim->troller.saglik);
-    printf("\nvarg_binicileri saglik : %f\n",birim->varg_binicileri.saglik);
-
+        fprintf(savas_sim,"sonraki sagligi : %f\n",birim->troller.saglik);
+        if(birim->troller.saglik <= 0)
+        {
+            fprintf(savas_sim,"\nTrollerin sagligi 0 yada altina dustugu icin oldu!!!\n");
+            birim->troller.birimSayi = 0;
+            birim->troller.saglik = 0;
+        }
+    }
+    if(birim->mizrakcilar.saglik == 0 && birim->ork_dovusculeri.saglik == 0 && birim->troller.saglik == 0 &&birim->varg_binicileri.saglik == 0)
+        fprintf(savas_sim,"\nButun birimlerin sagligi 0 oldu, hepsi oldu.");
 }
 
-void birim_guncelle_ork(struct BirimlerOrg *birim, float netHasar, float toplamSavunmaGucu)
+void birim_guncelle_ork(struct BirimlerOrg *birim, float netHasar, float toplamSavunmaGucu, FILE *savas_sim)
 {
     hasar_dagilimi_ork(birim, netHasar, toplamSavunmaGucu);
-    birim_kayip_ork(birim);
-    saglik_durumu_ork(birim);
+    birim_kayip_ork(birim, savas_sim);
+    saglik_durumu_ork(birim, savas_sim);
 }
 
 void hasar_dagilimi_insan(struct BirimlerInsan *birim, float netHasar, float toplamSavunmaGucu)
@@ -1022,114 +1506,155 @@ void olen_hasardagit_insan(struct BirimlerInsan *birim, float birimHasarDagilimi
         birim->suvariler.hasar_dagilimi += birimHasarDagilimi * (((float)birim->suvariler.birimSayi * birim->suvariler.savunma) / kalanSavunmaGucu);
 }
 
-void birim_kayip_insan(struct BirimlerInsan *birim)
+void birim_kayip_insan(struct BirimlerInsan *birim, FILE *savas_sim)
 {
+    int Ksavasta = 0;
+    int Osavasta = 0;
+    int Psavasta = 0;
+    int Ssavasta = 0;
+
+    fprintf(savas_sim,"\n\n\n*****Insan Birim Kayiplari*****\n\n");
     if (birim->kusatma_makineleri.birimSayi > 0)
-        birim->kusatma_makineleri.birimSayi -= birim->kusatma_makineleri.hasar_dagilimi / birim->kusatma_makineleri.saglik;
-
-    if (birim->okcular.birimSayi > 0)
-        birim->okcular.birimSayi -= birim->okcular.hasar_dagilimi / birim->okcular.saglik;
-
-    if (birim->piyadeler.birimSayi > 0)
-        birim->piyadeler.birimSayi -= birim->piyadeler.hasar_dagilimi / birim->piyadeler.saglik;
-
-    if (birim->suvariler.birimSayi > 0)
-        birim->suvariler.birimSayi -= birim->suvariler.hasar_dagilimi / birim->suvariler.saglik;
-
-    printf("\nkusatma_makineleri sayisi: %d",birim->kusatma_makineleri.birimSayi);
-    printf("\nkusatma_makineleri hasar dagilimi : %f",birim->kusatma_makineleri.hasar_dagilimi);
-    if (birim->kusatma_makineleri.birimSayi <= 0)
     {
-        printf("\nkusatma_makineleri oldu\n");
+        Ksavasta = 1;
+        fprintf(savas_sim,"\nKusatma Makineleri hasar dagilimi : %f\n",birim->kusatma_makineleri.hasar_dagilimi);
+        fprintf(savas_sim,"Kusatma Makineleri onceki sayisi : %d , ",birim->kusatma_makineleri.birimSayi);
+        birim->kusatma_makineleri.birimSayi -= birim->kusatma_makineleri.hasar_dagilimi / birim->kusatma_makineleri.saglik;
+        fprintf(savas_sim,"sonraki sayisi : %d , olen birim sayisi : %f\n",birim->kusatma_makineleri.birimSayi, birim->kusatma_makineleri.hasar_dagilimi / birim->kusatma_makineleri.saglik);
+    }
+    if (birim->okcular.birimSayi > 0)
+    {
+        Osavasta = 1;
+        fprintf(savas_sim,"\nOkcular hasar dagilimi : %f\n",birim->okcular.hasar_dagilimi);
+        fprintf(savas_sim,"Okcular onceki sayisi : %d , ",birim->okcular.birimSayi);
+        birim->okcular.birimSayi -= birim->okcular.hasar_dagilimi / birim->okcular.saglik;
+        fprintf(savas_sim,"sonraki sayisi : %d , olen birim sayisi : %f\n",birim->okcular.birimSayi, birim->okcular.hasar_dagilimi / birim->okcular.saglik);
+    }
+    if (birim->piyadeler.birimSayi > 0)
+    {
+        Psavasta = 1;
+        fprintf(savas_sim,"\nPiyadeler hasar dagilimi : %f\n",birim->piyadeler.hasar_dagilimi);
+        fprintf(savas_sim,"Piyadeler onceki sayisi : %d , ",birim->piyadeler.birimSayi);
+        birim->piyadeler.birimSayi -= birim->piyadeler.hasar_dagilimi / birim->piyadeler.saglik;
+        fprintf(savas_sim,"sonraki sayisi : %d , olen birim sayisi : %f\n",birim->piyadeler.birimSayi, birim->piyadeler.hasar_dagilimi / birim->piyadeler.saglik);
+    }
+    if (birim->suvariler.birimSayi > 0)
+    {
+        Ssavasta = 1;
+        fprintf(savas_sim,"\nSuvariler hasar dagilimi : %f\n",birim->suvariler.hasar_dagilimi);
+        fprintf(savas_sim,"Suvariler onceki sayisi : %d , ",birim->suvariler.birimSayi);
+        birim->suvariler.birimSayi -= birim->suvariler.hasar_dagilimi / birim->suvariler.saglik;
+        fprintf(savas_sim,"sonraki sayisi : %d , olen birim sayisi : %f\n",birim->suvariler.birimSayi, birim->suvariler.hasar_dagilimi / birim->suvariler.saglik);
+    }
+
+    int Kkontrol = 0;
+    int Okontrol = 0;
+    int Pkontrol = 0;
+    int Skontrol = 0;
+
+    if (birim->kusatma_makineleri.birimSayi <= 0 && Kkontrol == 0 && Ksavasta == 1)
+    {
+        Kkontrol = 1;
+        fprintf(savas_sim,"\nKusatma Makineleri oldu.\n");
         birim->kusatma_makineleri.birimSayi = 0;
         olen_hasardagit_insan(birim, birim->kusatma_makineleri.hasar_dagilimi, insanSavunmaHesapla(birim));
-        printf("okcu yeni hasar dagilimi : %f", birim->okcular.hasar_dagilimi);
-        printf("piyade yeni hasar dagilimi : %f", birim->piyadeler.hasar_dagilimi);
-        printf("suvari yeni hasar dagilimi : %f", birim->suvariler.hasar_dagilimi);
+        fprintf(savas_sim,"\nOkcu yeni hasar dagilimi : %f\n", birim->okcular.hasar_dagilimi);
+        fprintf(savas_sim,"\nPiyade yeni hasar dagilimi : %f\n", birim->piyadeler.hasar_dagilimi);
+        fprintf(savas_sim,"\nSuvari yeni hasar dagilimi : %f\n", birim->suvariler.hasar_dagilimi);
     }
-
-    printf("\nokcular sayisi: %d",birim->okcular.birimSayi);
-    printf("\nokcular hasar_dagilimi: %f",birim->okcular.hasar_dagilimi);
-    if (birim->okcular.birimSayi <= 0)
+    if (birim->okcular.birimSayi <= 0 && Okontrol == 0 && Osavasta == 1)
     {
-        printf("\nokcular oldu\n");
+        Okontrol = 1;
+        fprintf(savas_sim,"\nOkcular oldu.\n");
         birim->okcular.birimSayi = 0;
         olen_hasardagit_insan(birim, birim->okcular.hasar_dagilimi, insanSavunmaHesapla(birim));
-        printf("piyade yeni hasar dagilimi : %f", birim->piyadeler.hasar_dagilimi);
-        printf("suvari yeni hasar dagilimi : %f", birim->suvariler.hasar_dagilimi);
-        printf("kusatma mak. yeni hasar dagilimi : %f", birim->kusatma_makineleri.hasar_dagilimi);
+        fprintf(savas_sim,"\nPiyade yeni hasar dagilimi : %f\n", birim->piyadeler.hasar_dagilimi);
+        fprintf(savas_sim,"\nSuvari yeni hasar dagilimi : %f\n", birim->suvariler.hasar_dagilimi);
+        fprintf(savas_sim,"\nKusatma mak. yeni hasar dagilimi : %f\n", birim->kusatma_makineleri.hasar_dagilimi);
     }
-
-    printf("\npiyadeler sayisi : %d",birim->piyadeler.birimSayi);
-    printf("\npiyadeler hasar_dagilimi : %f",birim->piyadeler.hasar_dagilimi);
-    if (birim->piyadeler.birimSayi <= 0)
+    if (birim->piyadeler.birimSayi <= 0 && Pkontrol == 0 && Psavasta == 1)
     {
-        printf("\npiyadeler oldu\n");
+        Pkontrol = 1;
+        fprintf(savas_sim,"\nPiyadeler oldu.\n");
         birim->piyadeler.birimSayi = 0;
         olen_hasardagit_insan(birim, birim->piyadeler.hasar_dagilimi, insanSavunmaHesapla(birim));
-        printf("suvari yeni hasar dagilimi : %f", birim->suvariler.hasar_dagilimi);
-        printf("kusatma mak. yeni hasar dagilimi : %f", birim->kusatma_makineleri.hasar_dagilimi);
-        printf("okcu yeni hasar dagilimi : %f", birim->okcular.hasar_dagilimi);
+        fprintf(savas_sim,"\nSuvari yeni hasar dagilimi : %f\n", birim->suvariler.hasar_dagilimi);
+        fprintf(savas_sim,"\nKusatma mak. yeni hasar dagilimi : %f\n", birim->kusatma_makineleri.hasar_dagilimi);
+        fprintf(savas_sim,"\nOkcu yeni hasar dagilimi : %f\n", birim->okcular.hasar_dagilimi);
     }
-
-    printf("\nsuvariler sayisi : %d",birim->suvariler.birimSayi);
-    printf("\nsuvariler hasar_dagilimi : %f",birim->suvariler.hasar_dagilimi);
-    if (birim->suvariler.birimSayi <= 0)
+    if (birim->suvariler.birimSayi <= 0 && Skontrol == 0 && Ssavasta == 1)
     {
-        printf("\nsuvariler oldu\n");
+        Skontrol = 1;
+        fprintf(savas_sim,"\nSuvariler oldu.\n");
         birim->suvariler.birimSayi = 0;
         olen_hasardagit_insan(birim, birim->suvariler.hasar_dagilimi, insanSavunmaHesapla(birim));
-        printf("kusatma mak. yeni hasar dagilimi : %f", birim->kusatma_makineleri.hasar_dagilimi);
-        printf("okcu yeni hasar dagilimi : %f", birim->okcular.hasar_dagilimi);
-        printf("piyade yeni hasar dagilimi : %f", birim->piyadeler.hasar_dagilimi);
+        fprintf(savas_sim,"\nKusatma mak. yeni hasar dagilimi : %f\n", birim->kusatma_makineleri.hasar_dagilimi);
+        fprintf(savas_sim,"\nOkcu yeni hasar dagilimi : %f\n", birim->okcular.hasar_dagilimi);
+        fprintf(savas_sim,"\nPiyade yeni hasar dagilimi : %f\n", birim->piyadeler.hasar_dagilimi);
     }
 }
 
-void saglik_durumu_insan(struct BirimlerInsan *birim)
+void saglik_durumu_insan(struct BirimlerInsan *birim, FILE *savas_sim)
 {
-    printf("\n--onceki saglik--\n");
-    printf("\nkusatma_makineleri saglik : %f\n",birim->kusatma_makineleri.saglik);
-    printf("\nokcular saglik : %f\n",birim->okcular.saglik);
-    printf("\npiyadeler saglik : %f\n",birim->piyadeler.saglik);
-    printf("\nsuvariler saglik : %f\n",birim->suvariler.saglik);
-
+    fprintf(savas_sim,"\n\n++++Insan Imparatorlugu Saglik Durumlari++++\n\n");
     if (birim->kusatma_makineleri.birimSayi > 0)
+    {
+        fprintf(savas_sim,"\nKusatma Makineleri onceki sagligi : %f , ",birim->kusatma_makineleri.saglik);
         birim->kusatma_makineleri.saglik -= birim->kusatma_makineleri.hasar_dagilimi / (float)birim->kusatma_makineleri.birimSayi;
-
+        fprintf(savas_sim,"sonraki sagligi : %f\n",birim->kusatma_makineleri.saglik);
+        if(birim->kusatma_makineleri.saglik <= 0)
+        {
+            fprintf(savas_sim,"\nKusatma Makineleri sagligi 0 yada altina dustugu icin oldu!!!\n");
+            birim->kusatma_makineleri.birimSayi = 0;
+            birim->kusatma_makineleri.saglik = 0;
+        }
+    }
     if (birim->okcular.birimSayi > 0)
+    {
+        fprintf(savas_sim,"\nOkcularin onceki sagligi : %f , ",birim->okcular.saglik);
         birim->okcular.saglik -= birim->okcular.hasar_dagilimi / (float)birim->okcular.birimSayi;
-
+        fprintf(savas_sim,"sonraki sagligi : %f\n",birim->okcular.saglik);
+        if(birim->okcular.saglik <= 0)
+        {
+            fprintf(savas_sim,"\nOkcu sagligi 0 yada altina dustugu icin oldu!!!\n");
+            birim->okcular.birimSayi = 0;
+            birim->okcular.saglik = 0;
+        }
+    }
     if (birim->piyadeler.birimSayi > 0)
+    {
+        fprintf(savas_sim,"\nPiyadelerin onceki sagligi : %f , ",birim->piyadeler.saglik);
         birim->piyadeler.saglik -= birim->piyadeler.hasar_dagilimi / (float)birim->piyadeler.birimSayi;
-
+        fprintf(savas_sim,"sonraki sagligi : %f\n",birim->piyadeler.saglik);
+        if(birim->piyadeler.saglik <= 0)
+        {
+            fprintf(savas_sim,"\nPiyade sagligi 0 yada altina dustugu icin oldu!!!\n");
+            birim->piyadeler.birimSayi = 0;
+            birim->piyadeler.saglik = 0;
+        }
+    }
     if (birim->suvariler.birimSayi > 0)
+    {
+        fprintf(savas_sim,"\nSuvarin onceki sagligi : %f , ",birim->suvariler.saglik);
         birim->suvariler.saglik -= birim->suvariler.hasar_dagilimi / (float)birim->suvariler.birimSayi;
+        fprintf(savas_sim,"sonraki sagligi : %f\n",birim->suvariler.saglik);
+        if(birim->suvariler.saglik <= 0)
+        {
+            fprintf(savas_sim,"\nSuvari sagligi 0 yada altina dustugu icin oldu!!!\n");
+            birim->suvariler.birimSayi = 0;
+            birim->suvariler.saglik = 0;
+        }
+    }
+    if(birim->suvariler.saglik == 0 && birim->piyadeler.saglik == 0 && birim->okcular.saglik == 0 &&birim->kusatma_makineleri.saglik == 0)
+        fprintf(savas_sim,"\nButun birimlerin sagligi 0 oldu, hepsi oldu.");
 
-
-    if(birim->kusatma_makineleri.saglik <= 0)
-        birim->kusatma_makineleri.birimSayi = 0;
-
-    if(birim->okcular.saglik <= 0)
-        birim->okcular.birimSayi = 0;
-
-    if(birim->piyadeler.saglik <= 0)
-        birim->piyadeler.birimSayi = 0;
-
-    if(birim->suvariler.saglik <= 0)
-        birim->suvariler.birimSayi = 0;
-
-    printf("\n--sonraki saglik--\n");
-    printf("\nkusatma_makineleri saglik : %f\n",birim->kusatma_makineleri.saglik);
-    printf("\nokcular saglik : %f\n",birim->okcular.saglik);
-    printf("\npiyadeler saglik : %f\n",birim->piyadeler.saglik);
-    printf("\nsuvariler saglik : %f\n",birim->suvariler.saglik);
 }
 
-void birim_guncelle_insan(struct BirimlerInsan *birim, float netHasar, float toplamSavunmaGucu)
+void birim_guncelle_insan(struct BirimlerInsan *birim, float netHasar, float toplamSavunmaGucu, FILE *savas_sim)
 {
     hasar_dagilimi_insan(birim, netHasar, toplamSavunmaGucu);
-    birim_kayip_insan(birim);
-    saglik_durumu_insan(birim);
+    birim_kayip_insan(birim, savas_sim);
+    saglik_durumu_insan(birim, savas_sim);
 }
 
 
@@ -1143,6 +1668,7 @@ void yorgunluk_uygula(struct BirimlerInsan *birimInsan, struct BirimlerOrg *biri
     birimInsan->okcular.savunma *= 0.9;
     birimInsan->piyadeler.savunma *= 0.9;
     birimInsan->suvariler.savunma *= 0.9;
+
     birimOrk->mizrakcilar.saldiri *= 0.9;
     birimOrk->ork_dovusculeri.saldiri *= 0.9;
     birimOrk->troller.saldiri *= 0.9;
@@ -1153,20 +1679,38 @@ void yorgunluk_uygula(struct BirimlerInsan *birimInsan, struct BirimlerOrg *biri
     birimOrk->varg_binicileri.savunma *= 0.9;
 }
 
-float kritik_hasar_hesapla(float normal_saldiri, float kritik_sans, int saldiri_sayisi)
+float kritik_hasar_hesapla(float normal_saldiri, float kritik_sans, int saldiri_sayisi, int birim_bil, FILE *savas_sim)
 {
-    if (kritik_sans != 0 && saldiri_sayisi % (int)(100 / kritik_sans) == 0)
-        return normal_saldiri * 1.5;
+    if ((kritik_sans > 0  && kritik_sans <= 100) && saldiri_sayisi % (int)(100 / kritik_sans) == 0)
+    {
+        if(birim_bil == 1)
+            fprintf(savas_sim,"\n\n\n%%%.0f kritik sansli Kusatma Makinesinin %.0f saldiri gucu %%50 artmistir.", kritik_sans, normal_saldiri);
+        else if(birim_bil == 2)
+            fprintf(savas_sim,"\n\n\n%%%.0f kritik sansli Okcunun %.0f saldiri gucu %%50 artmistir.", kritik_sans, normal_saldiri);
+        else if(birim_bil == 3)
+            fprintf(savas_sim,"\n\n\n%%%.0f kritik sansli Piyadenin %.0f saldiri gucu %%50 artmistir.", kritik_sans, normal_saldiri);
+        else if(birim_bil == 4)
+            fprintf(savas_sim,"\n\n\n%%%.0f kritik sansli Suvarinin %.0f saldiri gucu %%50 artmistir.", kritik_sans, normal_saldiri);
+        else if(birim_bil == 5)
+            fprintf(savas_sim,"\n\n\n%%%.0f kritik sansli Mizrakcinin %.0f saldiri gucu %%50 artmistir.", kritik_sans, normal_saldiri);
+        else if(birim_bil == 6)
+            fprintf(savas_sim,"\n\n\n%%%.0f kritik sansli Ork Dovusculerinin %.0f saldiri gucu %%50 artmistir.", kritik_sans, normal_saldiri);
+        else if(birim_bil == 7)
+            fprintf(savas_sim,"\n\n\n%%%.0f kritik sansli Trollerin %.0f saldiri gucu %%50 artmistir.", kritik_sans, normal_saldiri);
+        else if(birim_bil == 8)
+            fprintf(savas_sim,"\n\n\n%%%.0f kritik sansli Varg Binicilerinin %.0f saldiri gucu %%50 artmistir.", kritik_sans, normal_saldiri);
 
+        return normal_saldiri * 1.5;
+    }
     return normal_saldiri;
 }
 
-float insanSaldiriHesapla(struct BirimlerInsan *birim, int saldiri_sayisi)
+float insanSaldiriHesapla(struct BirimlerInsan *birim, int saldiri_sayisi, FILE *savas_sim)
 {
-    float kusatma_makineleri_saldiri = kritik_hasar_hesapla(birim->kusatma_makineleri.saldiri, birim->kusatma_makineleri.kritik_sans, saldiri_sayisi);
-    float okcular_saldiri = kritik_hasar_hesapla(birim->okcular.saldiri, birim->okcular.kritik_sans, saldiri_sayisi);
-    float piyadeler_saldiri = kritik_hasar_hesapla(birim->piyadeler.saldiri, birim->piyadeler.kritik_sans, saldiri_sayisi);
-    float suvariler_saldiri = kritik_hasar_hesapla(birim->suvariler.saldiri, birim->suvariler.kritik_sans, saldiri_sayisi);
+    float kusatma_makineleri_saldiri = kritik_hasar_hesapla(birim->kusatma_makineleri.saldiri, birim->kusatma_makineleri.kritik_sans, saldiri_sayisi, 1, savas_sim);
+    float okcular_saldiri = kritik_hasar_hesapla(birim->okcular.saldiri, birim->okcular.kritik_sans, saldiri_sayisi, 2, savas_sim);
+    float piyadeler_saldiri = kritik_hasar_hesapla(birim->piyadeler.saldiri, birim->piyadeler.kritik_sans, saldiri_sayisi, 3, savas_sim);
+    float suvariler_saldiri = kritik_hasar_hesapla(birim->suvariler.saldiri, birim->suvariler.kritik_sans, saldiri_sayisi, 4, savas_sim);
 
     float insan_saldiri_gucu =
         (float)birim->kusatma_makineleri.birimSayi * kusatma_makineleri_saldiri +
@@ -1188,13 +1732,13 @@ float insanSavunmaHesapla(struct BirimlerInsan *birim)
     return insan_savunma_gucu;
 }
 
-float orkSaldiriHesapla(struct BirimlerOrg *birim, int saldiri_sayisi)
+float orkSaldiriHesapla(struct BirimlerOrg *birim, int saldiri_sayisi, FILE *savas_sim)
 {
 
-    float mizrakcilar_saldiri = kritik_hasar_hesapla(birim->mizrakcilar.saldiri, birim->mizrakcilar.kritik_sans, saldiri_sayisi);
-    float ork_dovusculeri_saldiri = kritik_hasar_hesapla(birim->ork_dovusculeri.saldiri, birim->ork_dovusculeri.kritik_sans, saldiri_sayisi);
-    float troller_saldiri = kritik_hasar_hesapla(birim->troller.saldiri, birim->troller.kritik_sans, saldiri_sayisi);
-    float varg_binicileri_saldiri = kritik_hasar_hesapla(birim->varg_binicileri.saldiri, birim->varg_binicileri.kritik_sans, saldiri_sayisi);
+    float mizrakcilar_saldiri = kritik_hasar_hesapla(birim->mizrakcilar.saldiri, birim->mizrakcilar.kritik_sans, saldiri_sayisi, 5, savas_sim);
+    float ork_dovusculeri_saldiri = kritik_hasar_hesapla(birim->ork_dovusculeri.saldiri, birim->ork_dovusculeri.kritik_sans, saldiri_sayisi, 6, savas_sim);
+    float troller_saldiri = kritik_hasar_hesapla(birim->troller.saldiri, birim->troller.kritik_sans, saldiri_sayisi, 7, savas_sim);
+    float varg_binicileri_saldiri = kritik_hasar_hesapla(birim->varg_binicileri.saldiri, birim->varg_binicileri.kritik_sans, saldiri_sayisi, 8, savas_sim);
 
     float ork_saldiri_gucu =
         (float)birim->ork_dovusculeri.birimSayi * ork_dovusculeri_saldiri +
