@@ -1,0 +1,348 @@
+
+
+Imparatorluklarin Birim Sayilari
+
+OrkImp birimi  ==  Ork dovusculeri sayisi : 1000
+OrkImp birimi  ==  Mizrakci sayisi : 1000
+OrkImp birimi  ==  Varg binicileri sayisi : 1000
+OrkImp birimi  ==  Trol sayisi : 1000
+
+
+Imparatorluklarin Birim Sayilari
+
+InsanImp birimi  ==  Piyade sayisi : 1000
+InsanImp birimi  ==  Okcu sayisi : 1000
+InsanImp birimi  ==  Suvari sayisi : 1000
+InsanImp birimi  ==  Kusatma makineleri sayisi : 1000
+
+
+Imparatorluklarin Arastirma ve Seviyeleri
+
+InsanImp arastirmasi  Savunma Ustaligi : 3
+OrkImp arastirmasi  Saldiri Gelistirmesi : 3
+
+
+
+----------adim sayisi : 1----------
+
+
+
+***InsanImp icin Kaharaman ve Canavar etkileri***
+
+
+
+***OrkImp icin Kaharaman ve Canavar etkileri***
+
+
+
+***Arastirma etkileri***
+
+
+Ork Legi 3. seviye Saldiri Gelistirmesi arastirmasi tum_birimler e %30 saldiri uyguladi.
+Ork Dovusculeri - Troller - Varg Binicileri - Mizrakci birimlerinin eski saldiri gucleri = 35.000000 - 70.000000 - 55.000000 - 45.000000 dir. 
+Ork Dovusculeri - Troller - Varg Binicileri - Mizrakci birimlerinin yeni saldiri gucleri = 45.500000 - 91.000000 - 71.500000 - 58.499996 dir. 
+
+Insan Imp 3. seviye Savunma Ustaligi arastirmasi tum_birimler e %30 savunma uyguladi.
+Suvari - Piyade - Okcu - Kusatma mak. birimlerinin eski savunma gucleri = 30.000000 - 40.000000 - 20.000000 - 50.000000 dir. 
+Suvari - Piyade - Okcu - Kusatma mak. birimlerinin yeni savunma gucleri = 39.000000 - 52.000000 - 26.000000 - 65.000000 dir. 
+
+
+####Insan Imparatorlugu saldiriyor.####
+
+
+
+Insan saldiri gucu : 220000.000000
+
+Ork savunma gucu : 120000.000000
+
+Insan Imparatorlugunun net hasari : 100000.000000
+
+Insan Imparatorlugunun saldirisinda net hasar pozitif. Ork Legine hasar verdi.
+
+
+
+
+*****Ork Birim Kayiplari*****
+
+
+Mizrakcilar hasar dagilimi : 16666.667969
+Mizrakcilar onceki sayisi : 1000 , sonraki sayisi : 814 , olen birim sayisi : 185.185196
+
+Varg Binicileri hasar dagilimi : 29166.666016
+Varg Binicileri onceki sayisi : 1000 , sonraki sayisi : 775 , olen birim sayisi : 224.358963
+
+Ork Dovusculeri hasar dagilimi : 20833.332031
+Ork Dovusculeri onceki sayisi : 1000 , sonraki sayisi : 791 , olen birim sayisi : 208.333313
+
+Troller hasar dagilimi : 33333.335938
+Troller onceki sayisi : 1000 , sonraki sayisi : 833 , olen birim sayisi : 166.666687
+
+
+++++Ork Legi Saglik Durumlari++++
+
+
+Mizrakcinin onceki sagligi : 90.000000 , sonraki sagligi : 69.524979
+
+Varg Binicilerinin onceki sagligi : 130.000000 , sonraki sagligi : 92.365593
+
+Ork Dovusculerinin onceki sagligi : 100.000000 , sonraki sagligi : 73.662033
+
+Trollerin onceki sagligi : 200.000000 , sonraki sagligi : 159.983994
+
+
+
+----------adim sayisi : 2----------
+
+
+
+***InsanImp icin Kaharaman ve Canavar etkileri***
+
+
+
+***OrkImp icin Kaharaman ve Canavar etkileri***
+
+
+
+***Arastirma etkileri***
+
+
+Ork Legi 3. seviye Saldiri Gelistirmesi arastirmasi tum_birimler e %30 saldiri uyguladi.
+Ork Dovusculeri - Troller - Varg Binicileri - Mizrakci birimlerinin eski saldiri gucleri = 45.500000 - 91.000000 - 71.500000 - 58.499996 dir. 
+Ork Dovusculeri - Troller - Varg Binicileri - Mizrakci birimlerinin yeni saldiri gucleri = 59.149998 - 118.299995 - 92.949997 - 76.049995 dir. 
+
+Insan Imp 3. seviye Savunma Ustaligi arastirmasi tum_birimler e %30 savunma uyguladi.
+Suvari - Piyade - Okcu - Kusatma mak. birimlerinin eski savunma gucleri = 39.000000 - 52.000000 - 26.000000 - 65.000000 dir. 
+Suvari - Piyade - Okcu - Kusatma mak. birimlerinin yeni savunma gucleri = 50.699997 - 67.599998 - 33.799999 - 84.500000 dir. 
+
+
+####Ork Legi saldiriyor.####
+
+
+
+Ork saldiri gucu : 279272.500000
+
+Insan savunma gucu : 236600.000000
+
+Ork Leginin net hasari : 42672.500000
+
+Ork Leginin saldirisinda net hasar pozitif. Insan Imparatorluguna hasar verdi.
+
+
+
+
+*****Insan Birim Kayiplari*****
+
+
+Kusatma Makineleri hasar dagilimi : 15240.178711
+Kusatma Makineleri onceki sayisi : 1000 , sonraki sayisi : 898 , olen birim sayisi : 101.601189
+
+Okcular hasar dagilimi : 6096.071777
+Okcular onceki sayisi : 1000 , sonraki sayisi : 923 , olen birim sayisi : 76.200897
+
+Piyadeler hasar dagilimi : 12192.143555
+Piyadeler onceki sayisi : 1000 , sonraki sayisi : 878 , olen birim sayisi : 121.921432
+
+Suvariler hasar dagilimi : 9144.106445
+Suvariler onceki sayisi : 1000 , sonraki sayisi : 923 , olen birim sayisi : 76.200890
+
+
+++++Insan Imparatorlugu Saglik Durumlari++++
+
+
+Kusatma Makineleri onceki sagligi : 150.000000 , sonraki sagligi : 133.028748
+
+Okcularin onceki sagligi : 80.000000 , sonraki sagligi : 73.395370
+
+Piyadelerin onceki sagligi : 100.000000 , sonraki sagligi : 86.113731
+
+Suvarin onceki sagligi : 120.000000 , sonraki sagligi : 110.093063
+
+
+
+----------adim sayisi : 3----------
+
+
+
+***InsanImp icin Kaharaman ve Canavar etkileri***
+
+
+
+***OrkImp icin Kaharaman ve Canavar etkileri***
+
+
+
+***Arastirma etkileri***
+
+
+Ork Legi 3. seviye Saldiri Gelistirmesi arastirmasi tum_birimler e %30 saldiri uyguladi.
+Ork Dovusculeri - Troller - Varg Binicileri - Mizrakci birimlerinin eski saldiri gucleri = 59.149998 - 118.299995 - 92.949997 - 76.049995 dir. 
+Ork Dovusculeri - Troller - Varg Binicileri - Mizrakci birimlerinin yeni saldiri gucleri = 76.894997 - 153.789993 - 120.834991 - 98.864990 dir. 
+
+Insan Imp 3. seviye Savunma Ustaligi arastirmasi tum_birimler e %30 savunma uyguladi.
+Suvari - Piyade - Okcu - Kusatma mak. birimlerinin eski savunma gucleri = 50.699997 - 67.599998 - 33.799999 - 84.500000 dir. 
+Suvari - Piyade - Okcu - Kusatma mak. birimlerinin yeni savunma gucleri = 65.909996 - 87.879997 - 43.939999 - 109.849998 dir. 
+
+
+####Insan Imparatorlugu saldiriyor.####
+
+
+
+Insan saldiri gucu : 199210.000000
+
+Ork savunma gucu : 96500.000000
+
+Insan Imparatorlugunun net hasari : 102710.000000
+
+Insan Imparatorlugunun saldirisinda net hasar pozitif. Ork Legine hasar verdi.
+
+
+
+
+*****Ork Birim Kayiplari*****
+
+
+Mizrakcilar hasar dagilimi : 17327.656250
+Mizrakcilar onceki sayisi : 814 , sonraki sayisi : 564 , olen birim sayisi : 249.229218
+
+Varg Binicileri hasar dagilimi : 28870.556641
+Varg Binicileri onceki sayisi : 775 , sonraki sayisi : 462 , olen birim sayisi : 312.568298
+
+Ork Dovusculeri hasar dagilimi : 21047.566406
+Ork Dovusculeri onceki sayisi : 791 , sonraki sayisi : 505 , olen birim sayisi : 285.731537
+
+Troller hasar dagilimi : 35464.218750
+Troller onceki sayisi : 833 , sonraki sayisi : 611 , olen birim sayisi : 221.673538
+
+
+++++Ork Legi Saglik Durumlari++++
+
+
+Mizrakcinin onceki sagligi : 69.524979 , sonraki sagligi : 38.802185
+
+Varg Binicilerinin onceki sagligi : 92.365593 , sonraki sagligi : 29.875210
+
+Ork Dovusculerinin onceki sagligi : 73.662033 , sonraki sagligi : 31.983685
+
+Trollerin onceki sagligi : 159.983994 , sonraki sagligi : 101.941086
+
+
+
+----------adim sayisi : 4----------
+
+
+
+***InsanImp icin Kaharaman ve Canavar etkileri***
+
+
+
+***OrkImp icin Kaharaman ve Canavar etkileri***
+
+
+
+***Arastirma etkileri***
+
+
+Ork Legi 3. seviye Saldiri Gelistirmesi arastirmasi tum_birimler e %30 saldiri uyguladi.
+Ork Dovusculeri - Troller - Varg Binicileri - Mizrakci birimlerinin eski saldiri gucleri = 76.894997 - 153.789993 - 120.834991 - 98.864990 dir. 
+Ork Dovusculeri - Troller - Varg Binicileri - Mizrakci birimlerinin yeni saldiri gucleri = 99.963493 - 199.926987 - 157.085480 - 128.524475 dir. 
+
+Insan Imp 3. seviye Savunma Ustaligi arastirmasi tum_birimler e %30 savunma uyguladi.
+Suvari - Piyade - Okcu - Kusatma mak. birimlerinin eski savunma gucleri = 65.909996 - 87.879997 - 43.939999 - 109.849998 dir. 
+Suvari - Piyade - Okcu - Kusatma mak. birimlerinin yeni savunma gucleri = 85.682991 - 114.243996 - 57.121998 - 142.804993 dir. 
+
+
+####Ork Legi saldiriyor.####
+
+
+
+Ork saldiri gucu : 317698.250000
+
+Insan savunma gucu : 360354.125000
+
+Ork Leginin net hasari : -42655.875000
+
+
+
+----------adim sayisi : 5----------
+
+
+5. adimda yorgunluk uygulandi
+
+
+
+***InsanImp icin Kaharaman ve Canavar etkileri***
+
+
+
+***OrkImp icin Kaharaman ve Canavar etkileri***
+
+
+
+***Arastirma etkileri***
+
+
+Ork Legi 3. seviye Saldiri Gelistirmesi arastirmasi tum_birimler e %30 saldiri uyguladi.
+Ork Dovusculeri - Troller - Varg Binicileri - Mizrakci birimlerinin eski saldiri gucleri = 89.967148 - 179.934296 - 141.376938 - 115.672028 dir. 
+Ork Dovusculeri - Troller - Varg Binicileri - Mizrakci birimlerinin yeni saldiri gucleri = 116.957291 - 233.914581 - 183.790009 - 150.373627 dir. 
+
+Insan Imp 3. seviye Savunma Ustaligi arastirmasi tum_birimler e %30 savunma uyguladi.
+Suvari - Piyade - Okcu - Kusatma mak. birimlerinin eski savunma gucleri = 77.114693 - 102.819595 - 51.409798 - 128.524490 dir. 
+Suvari - Piyade - Okcu - Kusatma mak. birimlerinin yeni savunma gucleri = 100.249100 - 133.665466 - 66.832733 - 167.081833 dir. 
+
+
+####Insan Imparatorlugu saldiriyor.####
+
+
+
+Insan saldiri gucu : 179289.000000
+
+Ork savunma gucu : 58063.500000
+
+Insan Imparatorlugunun net hasari : 121225.500000
+
+Insan Imparatorlugunun saldirisinda net hasar pozitif. Ork Legine hasar verdi.
+
+
+
+
+*****Ork Birim Kayiplari*****
+
+
+Mizrakcilar hasar dagilimi : 21195.437500
+Mizrakcilar onceki sayisi : 564 , sonraki sayisi : 17 , olen birim sayisi : 546.243408
+
+Varg Binicileri hasar dagilimi : 30383.884766
+Varg Binicileri onceki sayisi : 462 , sonraki sayisi : -555 , olen birim sayisi : 1017.026672
+
+Ork Dovusculeri hasar dagilimi : 23722.730469
+Ork Dovusculeri onceki sayisi : 505 , sonraki sayisi : -236 , olen birim sayisi : 741.713501
+
+Troller hasar dagilimi : 45923.445313
+Troller onceki sayisi : 611 , sonraki sayisi : 160 , olen birim sayisi : 450.490051
+
+Ork Dovusculeri oldu
+Mizrakci yeni hasar dagilimi : 20559.589844
+Trol yeni hasar dagilimi : 33954.546875
+Varg Binicileri yeni hasar dagilimi : 30383.884766
+
+VSarg Binicileri oldu
+Mizrakci yeni hasar dagilimi : 22092.308594
+Ork yeni hasar dagilimi : 23722.730469
+Trol yeni hasar dagilimi : 62805.714844
+
+
+++++Ork Legi Saglik Durumlari++++
+
+
+Mizrakcinin onceki sagligi : 38.802185 , sonraki sagligi : -1260.745361
+
+Mizrakci sagligi 0 yada altina dustugu icin oldu!!!
+
+Trollerin onceki sagligi : 101.941086 , sonraki sagligi : -290.594604
+
+Trollerin sagligi 0 yada altina dustugu icin oldu!!!
+
+
+
+Insan Imparatorlugu kazandi!!!
+

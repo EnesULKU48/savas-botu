@@ -5,6 +5,11 @@
 #include <curl/curl.h>
 #include <SDL2/SDL.h>
 
+#define GRID_SIZE 20  // 20x20 karoluk ızgara
+#define TILE_SIZE 50
+#define HEALTH_BAR_HEIGHT 5  // Sağlık barı için ayrılan yükseklik
+
+
 struct SavasanOzellikler
 {
     float hasar_orani;
@@ -173,6 +178,11 @@ float kritik_hasar_hesapla(float normal_saldiri, float kritik_sans, int saldiri_
 int ork_ordu_oldu_mu(struct BirimlerOrg *birim);
 int insan_ordu_oldu_mu(struct BirimlerInsan *birim);
 
+void grafik(struct Savasanlar *s);
+int kac_karo(int x);
+void render_unit_heroes(SDL_Renderer *renderer, SDL_Texture *texture, int *x_offset, int *y_offset);
+void render_unit_insan(SDL_Renderer *renderer, SDL_Texture *texture, int unit_count, int *x_offset, int *y_offset, int tam_can, int son_can);
+void render_unit_ork(SDL_Renderer *renderer, SDL_Texture *texture, int unit_count, int *x_offset, int *y_offset, int tam_can, int son_can);
 
 int main(int argc, char *argv[])
 {
@@ -184,10 +194,533 @@ int main(int argc, char *argv[])
 
     senaryoAyristir(s);
 
-    savas(s);
+    grafik(s);
 
     free(s);
     return 0;
+}
+
+int kac_karo(int x)
+{
+    int karo_sayi=0;
+    while (x >= 100)
+    {
+        karo_sayi++;
+        x -= 100;
+    }
+
+    if (x > 0)
+    {
+        karo_sayi++;
+    }
+    return karo_sayi;
+}
+
+void render_unit_heroes(SDL_Renderer *renderer, SDL_Texture *texture, int *x_offset, int *y_offset)
+{
+
+    SDL_Rect destRect = {*x_offset * TILE_SIZE, *y_offset * TILE_SIZE, TILE_SIZE, TILE_SIZE};
+    SDL_RenderCopy(renderer, texture, NULL, &destRect);
+
+    // Y koordinatını artır, sütun dolunca sıfırla ve x'i artır
+    (*y_offset)++;
+    if (*y_offset >= GRID_SIZE)
+    {
+        *y_offset = 0;  // Satırı sıfırla
+        (*x_offset)++;  // Bir sonraki sütuna geç
+    }
+
+}
+
+void render_unit_insan(SDL_Renderer *renderer, SDL_Texture *texture, int unit_count, int *x_offset, int *y_offset, int tam_can, int son_can)
+{
+
+    // Sağlık yüzdesini hesapla
+    float saglik_yuzdesi = (float)(son_can * 100) / tam_can;
+
+    // Sağlık yüzdesine göre renk belirle
+    Uint8 r, g, b;  // RGB bileşenleri
+    if (saglik_yuzdesi > 80.0f)
+    {
+        r = 0;
+        g = 255;
+        b = 0;  // Yeşil
+    }
+    else if (saglik_yuzdesi > 30.0f)
+    {
+        r = 255;
+        g = 255;
+        b = 0;  // Sarı
+    }
+    else
+    {
+        r = 255;
+        g = 0;
+        b = 0;  // Kırmızı
+    }
+
+    for (int i = 0; i < unit_count; i++)
+    {
+        // Birim resmi için yerleşim
+        SDL_Rect destRect =
+        {
+            *x_offset * TILE_SIZE,
+            *y_offset * TILE_SIZE,
+            TILE_SIZE,
+            TILE_SIZE
+        };
+        SDL_RenderCopy(renderer, texture, NULL, &destRect);
+
+        // Sağlık barını resmin altına çiz (sağlık yüzdesine göre genişlik ayarlanır)
+        SDL_Rect healthBarRect =
+        {
+            destRect.x,
+            destRect.y + TILE_SIZE - HEALTH_BAR_HEIGHT,  // Alt sınırda yerleştirme
+            (int)(TILE_SIZE * saglik_yuzdesi / 100.0f),  // Sağlık yüzdesine göre genişlik
+            HEALTH_BAR_HEIGHT
+        };
+
+        // Sağlık barını belirlenen renkte çiz
+        SDL_SetRenderDrawColor(renderer, r, g, b, 255);
+        SDL_RenderFillRect(renderer, &healthBarRect);
+
+        // Y koordinatını artır, sütun dolunca sıfırla ve x'i artır
+        (*y_offset)++;
+        if (*y_offset >= GRID_SIZE)
+        {
+            *y_offset = 0;  // Satırı sıfırla
+            (*x_offset)++;  // Bir sonraki sütuna geç
+        }
+    }
+}
+
+void render_unit_ork(SDL_Renderer *renderer, SDL_Texture *texture, int unit_count, int *x_offset, int *y_offset, int tam_can, int son_can)
+{
+
+    // Sağlık yüzdesini hesapla
+    float saglik_yuzdesi = (float)(son_can * 100) / tam_can;
+
+    // Sağlık yüzdesine göre renk belirle
+    Uint8 r, g, b;
+    if (saglik_yuzdesi > 80.0f)
+    {
+        r = 0;
+        g = 255;
+        b = 0;  // Yeşil
+    }
+    else if (saglik_yuzdesi > 30.0f)
+    {
+        r = 255;
+        g = 255;
+        b = 0;  // Sarı
+    }
+    else
+    {
+        r = 255;
+        g = 0;
+        b = 0;  // Kırmızı
+    }
+
+    for (int i = 0; i < unit_count; i++)
+    {
+        // Birim resmi için yerleşim (en sağ sütundan sola doğru ilerler)
+        SDL_Rect destRect =
+        {
+            (*x_offset) * TILE_SIZE,
+            (*y_offset) * TILE_SIZE,
+            TILE_SIZE,
+            TILE_SIZE
+        };
+        SDL_RenderCopy(renderer, texture, NULL, &destRect);
+
+        // Sağlık barını resmin altına çiz
+        SDL_Rect healthBarRect =
+        {
+            destRect.x,
+            destRect.y + TILE_SIZE - HEALTH_BAR_HEIGHT,  // Alt sınırda yerleştirme
+            (int)(TILE_SIZE * saglik_yuzdesi / 100.0f),  // Sağlık yüzdesine göre genişlik
+            HEALTH_BAR_HEIGHT
+        };
+
+        // Sağlık barını belirlenen renkte çiz
+        SDL_SetRenderDrawColor(renderer, r, g, b, 255);
+        SDL_RenderFillRect(renderer, &healthBarRect);
+
+        // Y koordinatını artır, sütun dolunca sıfırla ve X'i azalt (soldaki sütuna geçiş)
+        (*y_offset)++;
+        if (*y_offset >= GRID_SIZE)
+        {
+            *y_offset = 0;  // Satırı sıfırla
+            (*x_offset)--;  // Bir sonraki sütuna geç (soldan devam)
+        }
+    }
+}
+
+void grafik(struct Savasanlar *s)
+{
+
+    SDL_Window *window = NULL;
+    SDL_Renderer *renderer = NULL;
+    SDL_Event event;
+    int running = 1;
+
+    // SDL başlat
+    if (SDL_Init(SDL_INIT_VIDEO) < 0)
+    {
+        printf("SDL başlatılamadı: %s\n", SDL_GetError());
+        return 1;
+    }
+
+    // Pencere oluştur
+    window = SDL_CreateWindow("20x20 Izgara",
+                              SDL_WINDOWPOS_UNDEFINED, SDL_WINDOWPOS_UNDEFINED,
+                              GRID_SIZE * TILE_SIZE, GRID_SIZE * TILE_SIZE, SDL_WINDOW_SHOWN);
+    if (!window)
+    {
+        printf("Pencere oluşturulamadı: %s\n", SDL_GetError());
+        SDL_Quit();
+        return 1;
+    }
+
+    // Renderer oluştur
+    renderer = SDL_CreateRenderer(window, -1, SDL_RENDERER_ACCELERATED);
+    if (!renderer)
+    {
+        printf("Renderer oluşturulamadı: %s\n", SDL_GetError());
+        SDL_DestroyWindow(window);
+        SDL_Quit();
+        return 1;
+    }
+
+// Yüzeyi yükleyip texture'a dönüştürme
+    SDL_Texture *textures[28];
+    textures[0] = SDL_CreateTextureFromSurface(renderer, SDL_LoadBMP("piyade.bmp"));
+    textures[1] = SDL_CreateTextureFromSurface(renderer, SDL_LoadBMP("suvariler.bmp"));
+    textures[2] = SDL_CreateTextureFromSurface(renderer, SDL_LoadBMP("okcu.bmp"));
+    textures[3] = SDL_CreateTextureFromSurface(renderer, SDL_LoadBMP("kusatma.bmp"));
+    textures[4] = SDL_CreateTextureFromSurface(renderer, SDL_LoadBMP("alparslan.bmp"));
+    textures[5] = SDL_CreateTextureFromSurface(renderer, SDL_LoadBMP("fatih.bmp"));
+    textures[6] = SDL_CreateTextureFromSurface(renderer, SDL_LoadBMP("metehan.bmp"));
+    textures[7] = SDL_CreateTextureFromSurface(renderer, SDL_LoadBMP("yavuz.bmp"));
+    textures[8] = SDL_CreateTextureFromSurface(renderer, SDL_LoadBMP("tugrul.bmp"));
+    textures[9] = SDL_CreateTextureFromSurface(renderer, SDL_LoadBMP("ejderha.bmp"));
+    textures[10] = SDL_CreateTextureFromSurface(renderer, SDL_LoadBMP("agri_dagi_devleri.bmp"));
+    textures[11] = SDL_CreateTextureFromSurface(renderer, SDL_LoadBMP("tepegoz.bmp"));
+    textures[12] = SDL_CreateTextureFromSurface(renderer, SDL_LoadBMP("kara_kurt.bmp"));
+    textures[13] = SDL_CreateTextureFromSurface(renderer, SDL_LoadBMP("samur.bmp"));
+    textures[14] = SDL_CreateTextureFromSurface(renderer, SDL_LoadBMP("ork_dovuscusu.bmp"));
+    textures[15] = SDL_CreateTextureFromSurface(renderer, SDL_LoadBMP("mizrakci.bmp"));
+    textures[16] = SDL_CreateTextureFromSurface(renderer, SDL_LoadBMP("varg_binicisi.bmp"));
+    textures[17] = SDL_CreateTextureFromSurface(renderer, SDL_LoadBMP("trol.bmp"));
+    textures[18] = SDL_CreateTextureFromSurface(renderer, SDL_LoadBMP("goruk_vahsi.bmp"));
+    textures[19] = SDL_CreateTextureFromSurface(renderer, SDL_LoadBMP("thruk_kemikkiran.bmp"));
+    textures[20] = SDL_CreateTextureFromSurface(renderer, SDL_LoadBMP("vrog_kafakiran.bmp"));
+    textures[21] = SDL_CreateTextureFromSurface(renderer, SDL_LoadBMP("ugar_zalim.bmp"));
+    textures[22] = SDL_CreateTextureFromSurface(renderer, SDL_LoadBMP("kara_troll.bmp"));
+    textures[23] = SDL_CreateTextureFromSurface(renderer, SDL_LoadBMP("golge_kurdu.bmp"));
+    textures[24] = SDL_CreateTextureFromSurface(renderer, SDL_LoadBMP("camur_devi.bmp"));
+    textures[25] = SDL_CreateTextureFromSurface(renderer, SDL_LoadBMP("ates_iblisi.bmp"));
+    textures[26] = SDL_CreateTextureFromSurface(renderer, SDL_LoadBMP("makrog_savas_beyi.bmp"));
+    textures[27] = SDL_CreateTextureFromSurface(renderer, SDL_LoadBMP("buz_devi.bmp"));
+
+// tanimmlamalar
+    int x_offset, y_offset;
+
+    int tam_can_piyade;
+    int azalmis_can_piyade;
+
+    int tam_can_suvari;
+    int azalmis_can_suvari;
+
+    int tam_can_okcu;
+    int azalmis_can_okcu;
+
+    int tam_can_kusatma;
+    int azalmis_can_kusatma;
+
+    int tam_can_ork_dovuscusu;
+    int azalmis_can_ork_dovuscusu;
+
+    int tam_can_mizrakci;
+    int azalmis_can_mizrakci;
+
+    int tam_can_varg;
+    int azalmis_can_varg;
+
+    int tam_can_trol;
+    int azalmis_can_trol;
+// Oyun döngüsü
+    while (running)
+    {
+        // Olayları kontrol et
+        while (SDL_PollEvent(&event))
+        {
+            if (event.type == SDL_QUIT)
+            {
+                running = 0;
+            }
+        }
+
+        // Ekranı temizle
+        SDL_SetRenderDrawColor(renderer, 255, 255, 255, 255);  // Beyaz arka plan
+        SDL_RenderClear(renderer);
+
+// Izgarayı çiz
+        SDL_SetRenderDrawColor(renderer, 0, 0, 0, 255);  // Siyah çizgi rengi
+
+        for (int i = 0; i <= GRID_SIZE; ++i)
+        {
+            // Dikey çizgiler
+            SDL_RenderDrawLine(renderer, i * TILE_SIZE, 0, i * TILE_SIZE, GRID_SIZE * TILE_SIZE);
+            // Yatay çizgiler
+            SDL_RenderDrawLine(renderer, 0, i * TILE_SIZE, GRID_SIZE * TILE_SIZE, i * TILE_SIZE);
+        }
+
+        x_offset = 0;
+        y_offset = 0;  // Başlangıç koordinatları
+
+
+        // Piyadeler
+        tam_can_piyade=s->insanImparatorlugu.birimler.piyadeler.saglik;
+        azalmis_can_piyade=s->insanImparatorlugu.birimler.piyadeler.saglik;
+        render_unit_insan(renderer, textures[0], kac_karo(s->insanImparatorlugu.birimler.piyadeler.birimSayi), &x_offset, &y_offset,tam_can_piyade,azalmis_can_piyade);
+
+        // Süvariler
+        tam_can_suvari=s->insanImparatorlugu.birimler.suvariler.saglik;
+        azalmis_can_suvari=s->insanImparatorlugu.birimler.suvariler.saglik;
+        render_unit_insan(renderer, textures[1], kac_karo(s->insanImparatorlugu.birimler.suvariler.birimSayi), &x_offset, &y_offset,tam_can_suvari,azalmis_can_suvari);
+
+        // Okçular
+        tam_can_okcu=s->insanImparatorlugu.birimler.okcular.saglik;
+        azalmis_can_okcu=s->insanImparatorlugu.birimler.okcular.saglik;
+        render_unit_insan(renderer, textures[2], kac_karo(s->insanImparatorlugu.birimler.okcular.birimSayi), &x_offset, &y_offset,tam_can_okcu,azalmis_can_okcu);
+
+        // Kuşatma Makineleri
+        tam_can_kusatma=s->insanImparatorlugu.birimler.kusatma_makineleri.saglik;
+        azalmis_can_kusatma=s->insanImparatorlugu.birimler.kusatma_makineleri.saglik;
+        render_unit_insan(renderer, textures[3], kac_karo(s->insanImparatorlugu.birimler.kusatma_makineleri.birimSayi), &x_offset, &y_offset,tam_can_kusatma,azalmis_can_kusatma);
+
+        if(s->insanImparatorlugu.kahramanlar.Alparslan.bonus_degeri>0.0)
+            render_unit_heroes(renderer,textures[4],&x_offset,&y_offset);
+
+        if(s->insanImparatorlugu.kahramanlar.Fatih_Sultan_Mehmet.bonus_degeri>0.0)
+            render_unit_heroes(renderer,textures[5],&x_offset,&y_offset);
+
+        if(s->insanImparatorlugu.kahramanlar.Mete_Han.bonus_degeri>0.0)
+            render_unit_heroes(renderer,textures[6],&x_offset,&y_offset);
+
+        if(s->insanImparatorlugu.kahramanlar.Yavuz_Sultan_Selim.bonus_degeri>0.0)
+            render_unit_heroes(renderer,textures[7],&x_offset,&y_offset);
+
+        if(s->insanImparatorlugu.kahramanlar.Tugrul_Bey.bonus_degeri>0.0)
+            render_unit_heroes(renderer,textures[8],&x_offset,&y_offset);
+
+        if(s->insanImparatorlugu.canavarlar.Ejderha.etki_degeri>0.0)
+            render_unit_heroes(renderer,textures[9],&x_offset,&y_offset);
+
+        if(s->insanImparatorlugu.canavarlar.Agri_Dagi_Devleri.etki_degeri>0.0)
+            render_unit_heroes(renderer,textures[10],&x_offset,&y_offset);
+
+        if(s->insanImparatorlugu.canavarlar.Tepegoz.etki_degeri>0.0)
+            render_unit_heroes(renderer,textures[11],&x_offset,&y_offset);
+
+        if(s->insanImparatorlugu.canavarlar.Karakurt.etki_degeri>0.0)
+            render_unit_heroes(renderer,textures[12],&x_offset,&y_offset);
+
+        if(s->insanImparatorlugu.canavarlar.Samur.etki_degeri>0.0)
+            render_unit_heroes(renderer,textures[13],&x_offset,&y_offset);
+
+// En sağ sütundan başla
+        x_offset = GRID_SIZE - 1;
+        y_offset = 0;
+
+        tam_can_ork_dovuscusu=s->orkLegi.birimler.ork_dovusculeri.saglik;
+        azalmis_can_ork_dovuscusu=s->orkLegi.birimler.ork_dovusculeri.saglik;
+        render_unit_ork(renderer,textures[14],kac_karo(s->orkLegi.birimler.ork_dovusculeri.birimSayi),&x_offset,&y_offset,tam_can_ork_dovuscusu,azalmis_can_ork_dovuscusu);
+
+
+        tam_can_mizrakci=s->orkLegi.birimler.mizrakcilar.saglik;
+        azalmis_can_mizrakci=s->orkLegi.birimler.mizrakcilar.saglik;
+        render_unit_ork(renderer,textures[15],kac_karo(s->orkLegi.birimler.mizrakcilar.birimSayi),&x_offset,&y_offset,tam_can_mizrakci,azalmis_can_mizrakci);
+
+        tam_can_varg=s->orkLegi.birimler.varg_binicileri.saglik;
+        azalmis_can_varg=s->orkLegi.birimler.varg_binicileri.saglik;
+        render_unit_ork(renderer,textures[16],kac_karo(s->orkLegi.birimler.varg_binicileri.birimSayi),&x_offset,&y_offset,tam_can_varg,azalmis_can_varg);
+
+        tam_can_trol=s->orkLegi.birimler.troller.saglik;
+        azalmis_can_trol=s->orkLegi.birimler.troller.saglik;
+        render_unit_ork(renderer,textures[17],kac_karo(s->orkLegi.birimler.troller.birimSayi),&x_offset,&y_offset,tam_can_trol,azalmis_can_trol);
+
+        if(s->orkLegi.kahramanlar.Goruk_Vahsi.bonus_degeri>0.0)
+            render_unit_heroes(renderer,textures[18],&x_offset,&y_offset);
+
+        if(s->orkLegi.kahramanlar.Thruk_Kemikkiran.bonus_degeri>0.0)
+            render_unit_heroes(renderer,textures[19],&x_offset,&y_offset);
+
+        if(s->orkLegi.kahramanlar.Vrog_Kafakiran.bonus_degeri>0.0)
+            render_unit_heroes(renderer,textures[20],&x_offset,&y_offset);
+
+        if(s->orkLegi.kahramanlar.Ugar_Zalim.bonus_degeri>0.0)
+            render_unit_heroes(renderer,textures[21],&x_offset,&y_offset);
+
+        if(s->orkLegi.canavarlar.Kara_Troll.etki_degeri>0.0)
+            render_unit_heroes(renderer,textures[22],&x_offset,&y_offset);
+
+        if(s->orkLegi.canavarlar.Golge_Kurtlari.etki_degeri>0.0)
+            render_unit_heroes(renderer,textures[23],&x_offset,&y_offset);
+
+        if(s->orkLegi.canavarlar.Camur_Devleri.etki_degeri>0.0)
+            render_unit_heroes(renderer,textures[24],&x_offset,&y_offset);
+
+        if(s->orkLegi.canavarlar.Ates_Iblisi.etki_degeri>0.0)
+            render_unit_heroes(renderer,textures[25],&x_offset,&y_offset);
+
+        if(s->orkLegi.canavarlar.Makrog_Savas_Beyi.etki_degeri>0.0)
+            render_unit_heroes(renderer,textures[26],&x_offset,&y_offset);
+
+        if(s->orkLegi.canavarlar.Buz_Devleri.etki_degeri>0.0)
+            render_unit_heroes(renderer,textures[27],&x_offset,&y_offset);
+
+        // Çizimleri ekrana yansıt
+        SDL_RenderPresent(renderer);
+         int key_pressed = 0;
+        while (!key_pressed)
+        {
+            SDL_WaitEvent(&event);  // Olay gelene kadar bekle
+            if (event.type == SDL_KEYDOWN && event.key.keysym.sym == SDLK_RIGHT)
+            {
+                printf("Sağ ok tuşuna basıldı, işleme devam ediliyor.\n");
+                key_pressed = 1;  // Sağ ok tuşuna basıldığında döngüden çık
+            }
+            else if (event.type == SDL_QUIT)
+            {
+                running = 0;
+                break;
+            }
+        }
+
+
+        savas(s);
+
+
+
+        // Ekranı temizle
+        SDL_SetRenderDrawColor(renderer, 255, 255, 255, 255);  // Beyaz arka plan
+        SDL_RenderClear(renderer);
+
+        // Izgarayı çiz
+        SDL_SetRenderDrawColor(renderer, 0, 0, 0, 255);  // Siyah çizgi rengi
+
+        for (int i = 0; i <= GRID_SIZE; ++i)
+        {
+            // Dikey çizgiler
+            SDL_RenderDrawLine(renderer, i * TILE_SIZE, 0, i * TILE_SIZE, GRID_SIZE * TILE_SIZE);
+            // Yatay çizgiler
+            SDL_RenderDrawLine(renderer, 0, i * TILE_SIZE, GRID_SIZE * TILE_SIZE, i * TILE_SIZE);
+        }
+
+        x_offset = 0;
+        y_offset = 0;  // Başlangıç koordinatları
+
+        azalmis_can_piyade=s->insanImparatorlugu.birimler.piyadeler.saglik;
+        render_unit_insan(renderer, textures[0], kac_karo(s->insanImparatorlugu.birimler.piyadeler.birimSayi), &x_offset, &y_offset,tam_can_piyade,azalmis_can_piyade);
+
+        azalmis_can_suvari=s->insanImparatorlugu.birimler.suvariler.saglik;
+        render_unit_insan(renderer, textures[1], kac_karo(s->insanImparatorlugu.birimler.suvariler.birimSayi), &x_offset, &y_offset,tam_can_suvari,azalmis_can_suvari);
+
+        azalmis_can_okcu=s->insanImparatorlugu.birimler.okcular.saglik;
+        render_unit_insan(renderer, textures[2], kac_karo(s->insanImparatorlugu.birimler.okcular.birimSayi), &x_offset, &y_offset,tam_can_okcu,azalmis_can_okcu);
+
+        azalmis_can_kusatma=s->insanImparatorlugu.birimler.kusatma_makineleri.saglik;
+        render_unit_insan(renderer, textures[3], kac_karo(s->insanImparatorlugu.birimler.kusatma_makineleri.birimSayi), &x_offset, &y_offset,tam_can_kusatma,azalmis_can_kusatma);
+
+        if(s->insanImparatorlugu.kahramanlar.Alparslan.bonus_degeri>0.0)
+            render_unit_heroes(renderer,textures[4],&x_offset,&y_offset);
+
+        if(s->insanImparatorlugu.kahramanlar.Fatih_Sultan_Mehmet.bonus_degeri>0.0)
+            render_unit_heroes(renderer,textures[5],&x_offset,&y_offset);
+
+        if(s->insanImparatorlugu.kahramanlar.Mete_Han.bonus_degeri>0.0)
+            render_unit_heroes(renderer,textures[6],&x_offset,&y_offset);
+
+        if(s->insanImparatorlugu.kahramanlar.Yavuz_Sultan_Selim.bonus_degeri>0.0)
+            render_unit_heroes(renderer,textures[7],&x_offset,&y_offset);
+
+        if(s->insanImparatorlugu.kahramanlar.Tugrul_Bey.bonus_degeri>0.0)
+            render_unit_heroes(renderer,textures[8],&x_offset,&y_offset);
+
+        if(s->insanImparatorlugu.canavarlar.Ejderha.etki_degeri>0.0)
+            render_unit_heroes(renderer,textures[9],&x_offset,&y_offset);
+
+        if(s->insanImparatorlugu.canavarlar.Agri_Dagi_Devleri.etki_degeri>0.0)
+            render_unit_heroes(renderer,textures[10],&x_offset,&y_offset);
+
+        if(s->insanImparatorlugu.canavarlar.Tepegoz.etki_degeri>0.0)
+            render_unit_heroes(renderer,textures[11],&x_offset,&y_offset);
+
+        if(s->insanImparatorlugu.canavarlar.Karakurt.etki_degeri>0.0)
+            render_unit_heroes(renderer,textures[12],&x_offset,&y_offset);
+
+        if(s->insanImparatorlugu.canavarlar.Samur.etki_degeri>0.0)
+            render_unit_heroes(renderer,textures[13],&x_offset,&y_offset);
+
+        // En sağ sütundan başla
+        x_offset = GRID_SIZE - 1;
+        y_offset = 0;
+
+        azalmis_can_ork_dovuscusu=s->orkLegi.birimler.ork_dovusculeri.saglik;
+        render_unit_ork(renderer,textures[14],kac_karo(s->orkLegi.birimler.ork_dovusculeri.birimSayi),&x_offset,&y_offset,tam_can_ork_dovuscusu,azalmis_can_ork_dovuscusu);
+
+        azalmis_can_mizrakci=s->orkLegi.birimler.mizrakcilar.saglik;
+        render_unit_ork(renderer,textures[15],kac_karo(s->orkLegi.birimler.mizrakcilar.birimSayi),&x_offset,&y_offset,tam_can_mizrakci,azalmis_can_mizrakci);
+
+        azalmis_can_varg=s->orkLegi.birimler.varg_binicileri.saglik;
+        render_unit_ork(renderer,textures[16],kac_karo(s->orkLegi.birimler.varg_binicileri.birimSayi),&x_offset,&y_offset,tam_can_varg,azalmis_can_varg);
+
+        azalmis_can_trol=s->orkLegi.birimler.troller.saglik;
+        render_unit_ork(renderer,textures[17],kac_karo(s->orkLegi.birimler.troller.birimSayi),&x_offset,&y_offset,tam_can_trol,azalmis_can_trol);
+
+
+
+
+        if(s->orkLegi.kahramanlar.Goruk_Vahsi.bonus_degeri>0.0)
+            render_unit_heroes(renderer,textures[18],&x_offset,&y_offset);
+
+        if(s->orkLegi.kahramanlar.Thruk_Kemikkiran.bonus_degeri>0.0)
+            render_unit_heroes(renderer,textures[19],&x_offset,&y_offset);
+
+        if(s->orkLegi.kahramanlar.Vrog_Kafakiran.bonus_degeri>0.0)
+            render_unit_heroes(renderer,textures[20],&x_offset,&y_offset);
+
+        if(s->orkLegi.kahramanlar.Ugar_Zalim.bonus_degeri>0.0)
+            render_unit_heroes(renderer,textures[21],&x_offset,&y_offset);
+
+        if(s->orkLegi.canavarlar.Kara_Troll.etki_degeri>0.0)
+            render_unit_heroes(renderer,textures[22],&x_offset,&y_offset);
+
+        if(s->orkLegi.canavarlar.Golge_Kurtlari.etki_degeri>0.0)
+            render_unit_heroes(renderer,textures[23],&x_offset,&y_offset);
+
+        if(s->orkLegi.canavarlar.Camur_Devleri.etki_degeri>0.0)
+            render_unit_heroes(renderer,textures[24],&x_offset,&y_offset);
+
+        if(s->orkLegi.canavarlar.Ates_Iblisi.etki_degeri>0.0)
+            render_unit_heroes(renderer,textures[25],&x_offset,&y_offset);
+
+        if(s->orkLegi.canavarlar.Makrog_Savas_Beyi.etki_degeri>0.0)
+            render_unit_heroes(renderer,textures[26],&x_offset,&y_offset);
+
+        if(s->orkLegi.canavarlar.Buz_Devleri.etki_degeri>0.0)
+            render_unit_heroes(renderer,textures[27],&x_offset,&y_offset);
+
+
+
+        // Çizimleri ekrana yansıt
+        SDL_RenderPresent(renderer);
+        SDL_Delay(3000);
+        break;
+    }
+
 }
 
 void savas(struct Savasanlar *s)

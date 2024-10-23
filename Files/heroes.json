@@ -1,4 +1,4 @@
-{
+yavuz{
     "insan_imparatorlugu": {
         "Alparslan": {
             "bonus_turu": "savunma",
@@ -34,7 +34,7 @@
         },
         "Thruk_Kemikkiran": {
             "bonus_turu": "savunma",
-            "bonus_degeri": "25",
+            "b  onus_degeri": "25",
             "aciklama": "trollerin savunma gucunu %25 artirir."
         },
         "Vrog_Kafakiran": {
